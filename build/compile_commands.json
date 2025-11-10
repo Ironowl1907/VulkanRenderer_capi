@@ -1,0 +1,14 @@
+[
+{
+  "directory": "/home/ironowl/dev/vulkanRenderer/build",
+  "command": "/usr/sbin/c++  -I/home/ironowl/vulkan_sdk/1.4.328.1/x86_64/include -I/home/ironowl/dev/vulkanRenderer/include -std=gnu++17 -o CMakeFiles/VulkanRenderer.dir/src/main.cpp.o -c /home/ironowl/dev/vulkanRenderer/src/main.cpp",
+  "file": "/home/ironowl/dev/vulkanRenderer/src/main.cpp",
+  "output": "CMakeFiles/VulkanRenderer.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/ironowl/dev/vulkanRenderer/build",
+  "command": "/usr/sbin/c++  -I/home/ironowl/vulkan_sdk/1.4.328.1/x86_64/include -I/home/ironowl/dev/vulkanRenderer/include -std=gnu++17 -o CMakeFiles/VulkanRenderer.dir/src/Renderer.cpp.o -c /home/ironowl/dev/vulkanRenderer/src/Renderer.cpp",
+  "file": "/home/ironowl/dev/vulkanRenderer/src/Renderer.cpp",
+  "output": "CMakeFiles/VulkanRenderer.dir/src/Renderer.cpp.o"
+}
+]
