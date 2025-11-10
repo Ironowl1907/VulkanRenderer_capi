@@ -1,16 +1,26 @@
 #pragma once
 
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
-struct RendererContext {};
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGH 600
+
+struct Context {
+	GLFWwindow * window;
+};
 
 class Renderer {
 public:
   void init();
   void shutdown();
-  void render();
+
+  void run();
 
 private:
-  void init_pipline();
-  RendererContext m_context;
+  void initVulkan();
+	void initGLFW();
+  void renderLoop();
+  void cleanup();
+  Context m_context;
 };
