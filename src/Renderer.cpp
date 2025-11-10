@@ -1,7 +1,10 @@
 #include "Renderer.h"
 #include <GLFW/glfw3.h>
 
-void Renderer::init() {}
+void Renderer::init() {
+  initGLFW();
+  initVulkan();
+}
 void Renderer::shutdown() {}
 
 void Renderer::run() {}
@@ -18,5 +21,12 @@ void Renderer::initGLFW() {
       glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGH, "Vulkan Renderer", 0, 0);
 }
 
-void Renderer::renderLoop() {}
-void Renderer::cleanup() {}
+void Renderer::renderLoop() {
+  while (glfwWindowShouldClose(m_context.window)) {
+    glfwPollEvents();
+  }
+}
+void Renderer::cleanup() {
+  glfwDestroyWindow(m_context.window);
+  glfwTerminate();
+}

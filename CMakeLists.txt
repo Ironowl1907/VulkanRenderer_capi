@@ -24,6 +24,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${VULKAN_LIBRARY}
+    glfw
 )
 
 # Print configuration info
