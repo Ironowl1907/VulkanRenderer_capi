@@ -1,4 +1,5 @@
 #include "Renderer.h"
+#include "vulkan/vulkan_core.h"
 #include <GLFW/glfw3.h>
 
 void Renderer::init() {
@@ -10,6 +11,11 @@ void Renderer::shutdown() {}
 void Renderer::run() {}
 
 void Renderer::initVulkan() {}
+
+void Renderer::createInstance() {
+VkApplicationInfo appInfo {};
+		appInfo.sType
+}
 
 void Renderer::initGLFW() {
   glfwInit();

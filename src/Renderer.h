@@ -1,5 +1,6 @@
 #pragma once
 
+#include "vulkan/vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
@@ -7,7 +8,8 @@
 #define WINDOW_HEIGH 600
 
 struct Context {
-	GLFWwindow * window;
+  GLFWwindow *window;
+  VkInstance instance;
 };
 
 class Renderer {
@@ -19,7 +21,8 @@ public:
 
 private:
   void initVulkan();
-	void initGLFW();
+  void createInstance();
+  void initGLFW();
   void renderLoop();
   void cleanup();
   Context m_context;
