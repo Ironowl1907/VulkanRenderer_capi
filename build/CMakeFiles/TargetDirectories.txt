@@ -1,3 +1,0 @@
-/home/ironowl/dev/vulkanRenderer/build/CMakeFiles/VulkanRenderer.dir
-/home/ironowl/dev/vulkanRenderer/build/CMakeFiles/edit_cache.dir
-/home/ironowl/dev/vulkanRenderer/build/CMakeFiles/rebuild_cache.dir
