@@ -1,11 +1,11 @@
 #pragma once
 
-#include "vulkan/vulkan_core.h"
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan.h>
+
+#include <volk/volk.h>
 
 #define WINDOW_WIDTH 800
-#define WINDOW_HEIGH 600
+#define WINDOW_HEIGHT 600
 
 struct Context {
   GLFWwindow *window;
