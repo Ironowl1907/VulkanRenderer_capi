@@ -4,10 +4,11 @@ project(VulkanRenderer VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(VULKAN_SDK_PATH "~/vulkan_sdk/1.4.328.1/x86_64/" CACHE PATH "Path to Vulkan SDK")
+set(VULKAN_SDK_PATH "/home/ironowl/vulkan_sdk/1.4.328.1/x86_64/" CACHE PATH "Path to Vulkan SDK")
 
 set(VULKAN_INCLUDE_DIR "${VULKAN_SDK_PATH}/include")
 set(VULKAN_LIBRARY_DIR "${VULKAN_SDK_PATH}/lib")
+set(VULKAN_LIBRARY "${VULKAN_SDK_PATH}/lib/libvulkan.so") 
 
 # Create executable
 add_executable(${PROJECT_NAME}
@@ -19,11 +20,12 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${VULKAN_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/include
+    vendor/
 )
 
 # Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    # ${VULKAN_LIBRARY}
+    ${VULKAN_LIBRARY}
     glfw
 )
 
