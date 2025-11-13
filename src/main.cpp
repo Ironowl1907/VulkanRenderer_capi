@@ -1,3 +1,4 @@
+#include "vulkan/vulkan_core.h"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -195,10 +196,10 @@ private:
 
   std::vector<VkCommandBuffer> commandBuffers;
 
-  std::vector<VkSemaphore> imageAvailableSemaphores;
-  std::vector<VkSemaphore> renderFinishedSemaphores;
-  std::vector<VkFence> inFlightFences;
-  uint32_t currentFrame = 0;
+  std::vector<VkSemaphore> submitSemaphores;
+  std::vector<VkSemaphore> adquiredSemaphore;
+  std::vector<VkFence> frameFences;
+  uint32_t inFlightCurrentFrame = 0;
 
   bool framebufferResized = false;
 
@@ -298,10 +299,13 @@ private:
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
 
+    for (size_t i = 0; i < swapChainImages.size(); i++) {
+      vkDestroySemaphore(device, submitSemaphores[i], nullptr);
+      vkDestroySemaphore(device, adquiredSemaphore[i], nullptr);
+    }
+
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-      vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
-      vkDestroySemaphore(device, imageAvailableSemaphores[i], nullptr);
-      vkDestroyFence(device, inFlightFences[i], nullptr);
+      vkDestroyFence(device, frameFences[i], nullptr);
     }
 
     vkDestroyCommandPool(device, commandPool, nullptr);
@@ -866,8 +870,8 @@ private:
 
   void createTextureImage() {
     int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load("../textures/mondongo.jpg", &texWidth, &texHeight,
-                                &texChannels, STBI_rgb_alpha);
+    stbi_uc *pixels = stbi_load("../textures/mondongo.jpg", &texWidth,
+                                &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if (!pixels) {
@@ -1357,8 +1361,8 @@ private:
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout, 0, 1, &descriptorSets[currentFrame],
-                            0, nullptr);
+                            pipelineLayout, 0, 1,
+                            &descriptorSets[inFlightCurrentFrame], 0, nullptr);
 
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
                      0, 0);
@@ -1371,9 +1375,9 @@ private:
   }
 
   void createSyncObjects() {
-    imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+    submitSemaphores.resize(swapChainImages.size());
+    adquiredSemaphore.resize(swapChainImages.size());
+    frameFences.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1383,12 +1387,18 @@ private:
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+      if (vkCreateFence(device, &fenceInfo, nullptr, &frameFences[i]) !=
+          VK_SUCCESS) {
+        throw std::runtime_error(
+            "failed to create synchronization objects for a frame!");
+      }
+    }
+
+    for (int i = 0; i < swapChainImages.size(); i++) {
       if (vkCreateSemaphore(device, &semaphoreInfo, nullptr,
-                            &imageAvailableSemaphores[i]) != VK_SUCCESS ||
+                            &submitSemaphores[i]) != VK_SUCCESS ||
           vkCreateSemaphore(device, &semaphoreInfo, nullptr,
-                            &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-          vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) !=
-              VK_SUCCESS) {
+                            &adquiredSemaphore[i]) != VK_SUCCESS) {
         throw std::runtime_error(
             "failed to create synchronization objects for a frame!");
       }
@@ -1418,13 +1428,18 @@ private:
   }
 
   void drawFrame() {
-    vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE,
-                    UINT64_MAX);
+    VkFence frameFence = frameFences[inFlightCurrentFrame];
+    vkWaitForFences(device, 1, &frameFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &frameFence);
 
-    uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(
-        device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame],
-        VK_NULL_HANDLE, &imageIndex);
+    uint32_t swapChainImageIndex;
+    VkSemaphore acquireSemaphore = adquiredSemaphore[inFlightCurrentFrame];
+
+    VkResult result =
+        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, acquireSemaphore,
+                              VK_NULL_HANDLE, &swapChainImageIndex);
+
+    VkSemaphore submitSemaphore = submitSemaphores[swapChainImageIndex];
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
       recreateSwapChain();
@@ -1433,18 +1448,17 @@ private:
       throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    updateUniformBuffer(currentFrame);
+    VkCommandBuffer commandBuffer = commandBuffers[inFlightCurrentFrame];
 
-    vkResetFences(device, 1, &inFlightFences[currentFrame]);
+    updateUniformBuffer(inFlightCurrentFrame);
 
-    vkResetCommandBuffer(commandBuffers[currentFrame],
-                         /*VkCommandBufferResetFlagBits*/ 0);
-    recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+    vkResetCommandBuffer(commandBuffer, 0);
+    recordCommandBuffer(commandBuffer, swapChainImageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+    VkSemaphore waitSemaphores[] = {acquireSemaphore};
     VkPipelineStageFlags waitStages[] = {
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submitInfo.waitSemaphoreCount = 1;
@@ -1452,14 +1466,14 @@ private:
     submitInfo.pWaitDstStageMask = waitStages;
 
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
+    submitInfo.pCommandBuffers = &commandBuffer;
 
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+    VkSemaphore signalSemaphores[] = {submitSemaphore};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo,
-                      inFlightFences[currentFrame]) != VK_SUCCESS) {
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, frameFence) !=
+        VK_SUCCESS) {
       throw std::runtime_error("failed to submit draw command buffer!");
     }
 
@@ -1473,7 +1487,7 @@ private:
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
 
-    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pImageIndices = &swapChainImageIndex;
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
@@ -1485,7 +1499,7 @@ private:
       throw std::runtime_error("failed to present swap chain image!");
     }
 
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    inFlightCurrentFrame = (inFlightCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
   }
 
   VkShaderModule createShaderModule(const std::vector<char> &code) {
