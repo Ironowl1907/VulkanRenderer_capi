@@ -13,7 +13,7 @@ set(VULKAN_LIBRARY "${VULKAN_SDK_PATH}/lib/libvulkan.so")
 # Create executable
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    src/Renderer.cpp
+    src/Renderer/Renderer.cpp
 )
 
 # Include directories
