@@ -14,6 +14,7 @@ set(VULKAN_LIBRARY "${VULKAN_SDK_PATH}/lib/libvulkan.so")
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/Renderer/Renderer.cpp
+    src/Renderer/core/VulkanContext.cpp
 )
 
 # Include directories
@@ -21,6 +22,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${VULKAN_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/include
     vendor/
+    src/Renderer
 )
 
 # Link libraries
