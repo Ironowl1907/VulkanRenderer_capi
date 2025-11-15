@@ -191,7 +191,6 @@ private:
     appInfo.validationLayers = validationLayers;
 
     m_context.init(appInfo, framebufferResizeCallback);
-    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain();
@@ -303,13 +302,6 @@ private:
     createFramebuffers();
   }
 
-  void createSurface() {
-    if (glfwCreateWindowSurface(m_context.getInstance(), m_context.getWindow(),
-                                nullptr,
-                                &m_context.getSurface()) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create window surface!");
-    }
-  }
 
   void pickPhysicalDevice() {
     uint32_t deviceCount = 0;

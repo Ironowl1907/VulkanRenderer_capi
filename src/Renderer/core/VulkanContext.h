@@ -51,6 +51,8 @@ private:
                                      VkDebugUtilsMessengerEXT debugMessenger,
                                      const VkAllocationCallbacks *pAllocator);
 
+  void createSurface();
+
 private:
   VkInstance m_instance;
 

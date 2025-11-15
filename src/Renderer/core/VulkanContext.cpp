@@ -168,6 +168,16 @@ void VulkanContext::initVulkan(bool validationLayersEnabled,
     throw std::runtime_error("failed to create instance!");
   }
   setupDebugMessenger(validationLayersEnabled);
+
+
+  createSurface();
+}
+
+void VulkanContext::createSurface() {
+  if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) !=
+      VK_SUCCESS) {
+    throw std::runtime_error("failed to create window surface!");
+  }
 }
 
 void VulkanContext::shutdown() {
