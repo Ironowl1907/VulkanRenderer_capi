@@ -58,49 +58,11 @@ bool VulkanContext::checkValidationLayerSupport(
   return true;
 }
 
-void VulkanContext::init(bool validationLayersEnabled,
-                         std::vector<const char *> validationLayers) {
-
-  m_validationLayersEnabled = validationLayersEnabled;
-  if (validationLayersEnabled &&
-      !checkValidationLayerSupport(validationLayers)) {
-    throw std::runtime_error("validation layers requested, but not available!");
-  }
-
-  VkApplicationInfo appInfo{};
-  appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  appInfo.pApplicationName = "Hello Triangle";
-  appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.pEngineName = "No Engine";
-  appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_0;
-
-  VkInstanceCreateInfo createInfo{};
-  createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-  createInfo.pApplicationInfo = &appInfo;
-
-  auto extensions = getRequiredExtensions();
-  createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-  createInfo.ppEnabledExtensionNames = extensions.data();
-
-  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-  if (validationLayersEnabled) {
-    createInfo.enabledLayerCount =
-        static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-
-    populateDebugMessengerCreateInfo(debugCreateInfo);
-    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugCreateInfo;
-  } else {
-    createInfo.enabledLayerCount = 0;
-
-    createInfo.pNext = nullptr;
-  }
-
-  if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create instance!");
-  }
-  setupDebugMessenger(validationLayersEnabled);
+void VulkanContext::init(ApplicationInfo info,
+                         void (*resizeCallback)(GLFWwindow *window, int width,
+                                                int height)) {
+  initWindow(info.width, info.height, resizeCallback);
+  initVulkan(info.validationLayersEnabled, info.validationLayers);
 }
 
 void VulkanContext::populateDebugMessengerCreateInfo(
@@ -152,10 +114,70 @@ void VulkanContext::destroyDebugUtilsMessengerEXT(
   }
 }
 
+void VulkanContext::initWindow(int width, int height,
+                               void (*resizecallback)(GLFWwindow *window,
+                                                      int width, int height)) {
+  glfwInit();
+
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+  m_window =
+      glfwCreateWindow(width, height, "Vulkan Renderer", nullptr, nullptr);
+  glfwSetWindowUserPointer(m_window, this);
+  glfwSetFramebufferSizeCallback(m_window, resizecallback);
+}
+void VulkanContext::initVulkan(bool validationLayersEnabled,
+                               std::vector<const char *> validationLayers) {
+  m_validationLayersEnabled = validationLayersEnabled;
+  if (validationLayersEnabled &&
+      !checkValidationLayerSupport(validationLayers)) {
+    throw std::runtime_error("validation layers requested, but not available!");
+  }
+
+  VkApplicationInfo appInfo{};
+  appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+  appInfo.pApplicationName = "Hello Triangle";
+  appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+  appInfo.pEngineName = "No Engine";
+  appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+  appInfo.apiVersion = VK_API_VERSION_1_0;
+
+  VkInstanceCreateInfo createInfo{};
+  createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+  createInfo.pApplicationInfo = &appInfo;
+
+  auto extensions = getRequiredExtensions();
+  createInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+  createInfo.ppEnabledExtensionNames = extensions.data();
+
+  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+  if (validationLayersEnabled) {
+    createInfo.enabledLayerCount =
+        static_cast<uint32_t>(validationLayers.size());
+    createInfo.ppEnabledLayerNames = validationLayers.data();
+
+    populateDebugMessengerCreateInfo(debugCreateInfo);
+    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugCreateInfo;
+  } else {
+    createInfo.enabledLayerCount = 0;
+
+    createInfo.pNext = nullptr;
+  }
+
+  if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create instance!");
+  }
+  setupDebugMessenger(validationLayersEnabled);
+}
+
 void VulkanContext::shutdown() {
   if (m_validationLayersEnabled) {
     destroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
   }
+
+  vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+
+  glfwDestroyWindow(m_window);
 
   vkDestroyInstance(m_instance, nullptr);
 }

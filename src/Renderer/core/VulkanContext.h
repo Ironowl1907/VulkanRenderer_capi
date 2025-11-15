@@ -1,14 +1,37 @@
 #include "vulkan/vulkan_core.h"
+#include <GLFW/glfw3.h>
 #include <vector>
+
+struct ApplicationInfo {
+  int width, height;
+  bool validationLayersEnabled;
+
+  std::vector<const char *> validationLayers;
+
+  ApplicationInfo(int width, int height, bool validationLayersEnabled,
+                  std::vector<const char *> validationLayers)
+      : width(width), height(height),
+        validationLayersEnabled(validationLayersEnabled),
+        validationLayers(validationLayers) {}
+
+  ApplicationInfo() {}
+};
 class VulkanContext {
 public:
-  void init(bool validationLayersEnabled,
-            std::vector<const char *> validationLayers);
+  void init(ApplicationInfo info,
+            void (*resizeCallback)(GLFWwindow *window, int width, int height));
   void shutdown();
 
   const VkInstance &getInstance() const { return m_instance; }
+  GLFWwindow *getWindow() { return m_window; }
+  VkSurfaceKHR &getSurface() { return m_surface; }
 
 private:
+  void initWindow(int width, int height,
+                  void (*resizecallback)(GLFWwindow *window, int width,
+                                         int height));
+  void initVulkan(bool validationLayersEnabled,
+                  std::vector<const char *> validationLayers);
   bool checkValidationLayerSupport(std::vector<const char *> validationLayers);
 
   std::vector<const char *> getRequiredExtensions(bool validationLayers = true);
@@ -34,4 +57,8 @@ private:
   bool m_validationLayersEnabled;
 
   VkDebugUtilsMessengerEXT m_debugMessenger;
+
+  VkSurfaceKHR m_surface;
+
+  GLFWwindow *m_window;
 };

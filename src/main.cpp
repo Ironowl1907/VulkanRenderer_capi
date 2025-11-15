@@ -119,18 +119,13 @@ const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 class HelloTriangleApplication {
 public:
   void run() {
-    initWindow();
     initVulkan();
     mainLoop();
     cleanup();
   }
 
 private:
-  GLFWwindow *window;
-
   VulkanContext m_context;
-
-  VkSurfaceKHR surface;
 
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   VkDevice device;
@@ -182,16 +177,6 @@ private:
 
   bool framebufferResized = false;
 
-  void initWindow() {
-    glfwInit();
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-  }
-
   static void framebufferResizeCallback(GLFWwindow *window, int width,
                                         int height) {
     auto app = reinterpret_cast<HelloTriangleApplication *>(
@@ -200,7 +185,12 @@ private:
   }
 
   void initVulkan() {
-    m_context.init(true, validationLayers);
+    ApplicationInfo appInfo;
+    appInfo.width = WIDTH, appInfo.height = HEIGHT;
+    appInfo.validationLayersEnabled = enableValidationLayers;
+    appInfo.validationLayers = validationLayers;
+
+    m_context.init(appInfo, framebufferResizeCallback);
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
@@ -225,7 +215,7 @@ private:
   }
 
   void mainLoop() {
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(m_context.getWindow())) {
       glfwPollEvents();
       drawFrame();
     }
@@ -290,20 +280,16 @@ private:
 
     vkDestroyDevice(device, nullptr);
 
-    vkDestroySurfaceKHR(m_context.getInstance(), surface, nullptr);
-
     m_context.shutdown();
-
-    glfwDestroyWindow(window);
 
     glfwTerminate();
   }
 
   void recreateSwapChain() {
     int width = 0, height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
+    glfwGetFramebufferSize(m_context.getWindow(), &width, &height);
     while (width == 0 || height == 0) {
-      glfwGetFramebufferSize(window, &width, &height);
+      glfwGetFramebufferSize(m_context.getWindow(), &width, &height);
       glfwWaitEvents();
     }
 
@@ -318,8 +304,9 @@ private:
   }
 
   void createSurface() {
-    if (glfwCreateWindowSurface(m_context.getInstance(), window, nullptr,
-                                &surface) != VK_SUCCESS) {
+    if (glfwCreateWindowSurface(m_context.getInstance(), m_context.getWindow(),
+                                nullptr,
+                                &m_context.getSurface()) != VK_SUCCESS) {
       throw std::runtime_error("failed to create window surface!");
     }
   }
@@ -416,7 +403,7 @@ private:
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = surface;
+    createInfo.surface = m_context.getSurface();
 
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
@@ -1454,7 +1441,7 @@ private:
       return capabilities.currentExtent;
     } else {
       int width, height;
-      glfwGetFramebufferSize(window, &width, &height);
+      glfwGetFramebufferSize(m_context.getWindow(), &width, &height);
 
       VkExtent2D actualExtent = {static_cast<uint32_t>(width),
                                  static_cast<uint32_t>(height)};
@@ -1473,27 +1460,28 @@ private:
   SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
     SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface,
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_context.getSurface(),
                                               &details.capabilities);
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,
-                                         nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, m_context.getSurface(),
+                                         &formatCount, nullptr);
 
     if (formatCount != 0) {
       details.formats.resize(formatCount);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount,
-                                           details.formats.data());
+      vkGetPhysicalDeviceSurfaceFormatsKHR(
+          device, m_context.getSurface(), &formatCount, details.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_context.getSurface(),
                                               &presentModeCount, nullptr);
 
     if (presentModeCount != 0) {
       details.presentModes.resize(presentModeCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(
-          device, surface, &presentModeCount, details.presentModes.data());
+      vkGetPhysicalDeviceSurfacePresentModesKHR(device, m_context.getSurface(),
+                                                &presentModeCount,
+                                                details.presentModes.data());
     }
 
     return details;
@@ -1555,7 +1543,8 @@ private:
       }
 
       VkBool32 presentSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_context.getSurface(),
+                                           &presentSupport);
 
       if (presentSupport) {
         indices.presentFamily = i;
