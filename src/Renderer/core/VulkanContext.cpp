@@ -260,7 +260,7 @@ void VulkanContext::createLogicalDevice() {
       static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-  if (enableValidationLayers) {
+  if (m_validationLayersEnabled) {
     createInfo.enabledLayerCount =
         static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -273,8 +273,9 @@ void VulkanContext::createLogicalDevice() {
     throw std::runtime_error("failed to create logical device!");
   }
 
-  vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-  vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
+  vkGetDeviceQueue(m_device, indices.graphicsFamily.value(), 0,
+                   &m_graphicsQueue);
+  vkGetDeviceQueue(m_device, indices.presentFamily.value(), 0, &m_presentQueue);
 }
 
 QueueFamilyIndices VulkanContext::findQueueFamilies(VkPhysicalDevice device) {
@@ -294,8 +295,7 @@ QueueFamilyIndices VulkanContext::findQueueFamilies(VkPhysicalDevice device) {
     }
 
     VkBool32 presentSupport = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_context.getSurface(),
-                                         &presentSupport);
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, m_surface, &presentSupport);
 
     if (presentSupport) {
       indices.presentFamily = i;

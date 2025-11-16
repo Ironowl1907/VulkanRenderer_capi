@@ -15,6 +15,7 @@ add_executable(${PROJECT_NAME}
     src/main.cpp
     src/Renderer/Renderer.cpp
     src/Renderer/core/VulkanContext.cpp
+    src/Renderer/Common/SwapchainSupportDetails.cpp
 )
 
 # Include directories

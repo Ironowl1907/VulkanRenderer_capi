@@ -3,6 +3,12 @@
 #include <optional>
 #include <vector>
 
+const std::vector<const char *> deviceExtensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
+const std::vector<const char *> validationLayers = {
+    "VK_LAYER_KHRONOS_validation"};
+
 struct ApplicationInfo {
   int width, height;
   bool validationLayersEnabled;
@@ -17,7 +23,6 @@ struct ApplicationInfo {
 
   ApplicationInfo() {}
 };
-
 
 struct QueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
@@ -39,6 +44,11 @@ public:
 
   VkPhysicalDevice &getPhysicalDevice() { return m_physicalDevice; }
   VkDevice &getDevice() { return m_device; }
+
+  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+  const VkQueue &getGraphicsQueue() { return m_graphicsQueue; }
+  const VkQueue &getPresentQueue() { return m_presentQueue; }
 
 private:
   void initWindow(int width, int height,
@@ -73,8 +83,6 @@ private:
 
   void createLogicalDevice();
 
-  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
 private:
@@ -91,4 +99,8 @@ private:
   VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 
   VkDevice m_device;
+
+  VkQueue m_graphicsQueue;
+
+  VkQueue m_presentQueue;
 };
