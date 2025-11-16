@@ -1,5 +1,6 @@
 #include "vulkan/vulkan_core.h"
 #include <GLFW/glfw3.h>
+#include <cassert>
 #include <optional>
 #include <vector>
 
@@ -47,8 +48,14 @@ public:
 
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
-  const VkQueue &getGraphicsQueue() { return m_graphicsQueue; }
-  const VkQueue &getPresentQueue() { return m_presentQueue; }
+  const VkQueue &getGraphicsQueue() {
+    assert(m_graphicsQueue != nullptr);
+    return m_graphicsQueue;
+  }
+  const VkQueue &getPresentQueue() {
+    assert(m_graphicsQueue != nullptr);
+    return m_presentQueue;
+  }
 
 private:
   void initWindow(int width, int height,

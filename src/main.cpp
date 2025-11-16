@@ -1286,7 +1286,7 @@ private:
 
     presentInfo.pImageIndices = &swapChainImageIndex;
 
-
+    result = vkQueuePresentKHR(m_context.getPresentQueue(), &presentInfo);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
         framebufferResized) {
