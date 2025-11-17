@@ -1,15 +1,17 @@
 #include "Swapchain.h"
+#include "Common/MemoryType.h"
 #include <algorithm>
 #include <array>
 #include <limits>
 #include <stdexcept>
-#include "Common/MemoryType.h"
 
-void Swapchain::init() {
-  createSwapChain();
-  createImageViews();
-  createDepthResources();
-  createFramebuffers();
+void Swapchain::init(VulkanContext &context) {
+  mp_context = &context;
+
+  // createSwapChain();
+  // createImageViews();
+  // createFramebuffers(renderPass);
+  // createDepthResources();
 }
 
 void Swapchain::shutdown() { cleanupSwapChain(); }
@@ -168,7 +170,7 @@ void Swapchain::cleanupSwapChain() {
   vkDestroySwapchainKHR(mp_context->getDevice(), m_swapChain, nullptr);
 }
 
-void Swapchain::recreateSwapChain() {
+void Swapchain::recreateSwapChain(VkRenderPass &renderPass) {
   int width = 0, height = 0;
   glfwGetFramebufferSize(mp_context->getWindow(), &width, &height);
   while (width == 0 || height == 0) {
@@ -182,11 +184,11 @@ void Swapchain::recreateSwapChain() {
   createSwapChain();
   createImageViews();
   createDepthResources();
-  createFramebuffers();
+  createFramebuffers(renderPass);
 }
 
 void Swapchain::createDepthResources() {
-  VkFormat depthFormat = findDepthFormat();
+  VkFormat depthFormat = findDepthFormat(*mp_context);
 
   createImage(
       m_swapChainExtent.width, m_swapChainExtent.height, depthFormat,
@@ -196,19 +198,21 @@ void Swapchain::createDepthResources() {
       createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-VkFormat Swapchain::findDepthFormat() {
+VkFormat Swapchain::findDepthFormat(VulkanContext &context) {
   return findSupportedFormat(
+      context,
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
        VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-VkFormat Swapchain::findSupportedFormat(const std::vector<VkFormat> &candidates,
+VkFormat Swapchain::findSupportedFormat(VulkanContext &context,
+                                        const std::vector<VkFormat> &candidates,
                                         VkImageTiling tiling,
                                         VkFormatFeatureFlags features) {
   for (VkFormat format : candidates) {
     VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties(mp_context->getPhysicalDevice(), format,
+    vkGetPhysicalDeviceFormatProperties(context.getPhysicalDevice(), format,
                                         &props);
 
     if (tiling == VK_IMAGE_TILING_LINEAR &&
@@ -223,7 +227,7 @@ VkFormat Swapchain::findSupportedFormat(const std::vector<VkFormat> &candidates,
   throw std::runtime_error("failed to find supported format!");
 }
 
-void Swapchain::createFramebuffers() {
+void Swapchain::createFramebuffers(VkRenderPass &renderPass) {
   m_swapChainFramebuffers.resize(m_swapChainImageViews.size());
 
   for (size_t i = 0; i < getSwapChainImageViews().size(); i++) {
@@ -278,7 +282,8 @@ void Swapchain::createImage(uint32_t width, uint32_t height, VkFormat format,
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memRequirements.size;
   allocInfo.memoryTypeIndex =
-      findMemoryType(memRequirements.memoryTypeBits, properties);
+      findMemoryType(mp_context->getPhysicalDevice(),
+                     memRequirements.memoryTypeBits, properties);
 
   if (vkAllocateMemory(mp_context->getDevice(), &allocInfo, nullptr,
                        &imageMemory) != VK_SUCCESS) {

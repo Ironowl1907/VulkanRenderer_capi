@@ -4,7 +4,7 @@
 #include "vulkan/vulkan_core.h"
 class Swapchain {
 public:
-  void init();
+  void init(VulkanContext &context);
 
   void shutdown();
 
@@ -29,18 +29,24 @@ public:
   VkImageView createImageView(VkImage image, VkFormat format,
                               VkImageAspectFlags aspectFlags);
 
-  void recreateSwapChain();
+  void recreateSwapChain(VkRenderPass &renderPass);
 
   void createImage(uint32_t width, uint32_t height, VkFormat format,
                    VkImageTiling tiling, VkImageUsageFlags usage,
                    VkMemoryPropertyFlags properties, VkImage &image,
                    VkDeviceMemory &imageMemory);
 
-  VkFormat findDepthFormat();
+  VkFormat findDepthFormat(VulkanContext &context);
 
-private:
   void createSwapChain();
 
+  void createImageViews();
+
+  void createDepthResources();
+
+  void createFramebuffers(VkRenderPass &renderPass);
+
+private:
   VkSurfaceFormatKHR chooseSwapSurfaceFormat(
       const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
@@ -49,20 +55,15 @@ private:
 
   VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 
-  void createImageViews();
-
   void cleanupSwapChain();
 
-  void createDepthResources();
-
-  VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates,
+  VkFormat findSupportedFormat(VulkanContext &context,
+                               const std::vector<VkFormat> &candidates,
                                VkImageTiling tiling,
                                VkFormatFeatureFlags features);
 
-  void createFramebuffers();
-
 private:
-  VulkanContext *mp_context;
+  VulkanContext *mp_context = nullptr;
 
   VkSwapchainKHR m_swapChain;
 

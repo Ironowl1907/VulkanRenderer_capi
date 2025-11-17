@@ -1,6 +1,7 @@
 #include "Common/SwapchainSupportDetails.h"
-#include "Swapchain/Swapchain.h"
+
 #include "Common/MemoryType.h"
+#include "Swapchain/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -27,8 +28,6 @@
 #include <optional>
 #include <stdexcept>
 #include <vector>
-
-#include "Core/VulkanContext.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -156,8 +155,16 @@ private:
     appInfo.validationLayers = validationLayers;
 
     m_context.init(appInfo, framebufferResizeCallback);
-    m_swapchain.init();
-    createRenderPass();
+
+    m_swapchain.init(m_context);
+    m_swapchain.createSwapChain();
+    m_swapchain.createImageViews();
+    m_swapchain.createDepthResources();
+
+    createRenderPass(m_context);
+
+    m_swapchain.createFramebuffers(renderPass);
+
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createCommandPool();
@@ -227,7 +234,7 @@ private:
     glfwTerminate();
   }
 
-  void createRenderPass() {
+  void createRenderPass(VulkanContext &context) {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = m_swapchain.getSwapChainImageFormat();
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -239,7 +246,7 @@ private:
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = m_swapchain.findDepthFormat();
+    depthAttachment.format = m_swapchain.findDepthFormat(context);
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -781,7 +788,8 @@ private:
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex =
-        findMemoryType(memRequirements.memoryTypeBits, properties);
+        findMemoryType(m_context.getPhysicalDevice(),
+                       memRequirements.memoryTypeBits, properties);
 
     if (vkAllocateMemory(m_context.getDevice(), &allocInfo, nullptr,
                          &bufferMemory) != VK_SUCCESS) {
@@ -982,7 +990,7 @@ private:
     VkSemaphore submitSemaphore = submitSemaphores[swapChainImageIndex];
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-      m_swapchain.recreateSwapChain();
+      m_swapchain.recreateSwapChain(renderPass);
       return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
       throw std::runtime_error("failed to acquire swap chain image!");
@@ -1034,7 +1042,7 @@ private:
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
         framebufferResized) {
       framebufferResized = false;
-      m_swapchain.recreateSwapChain();
+      m_swapchain.recreateSwapChain(renderPass);
     } else if (result != VK_SUCCESS) {
       throw std::runtime_error("failed to present swap chain image!");
     }
