@@ -339,5 +339,7 @@ void VulkanContext::shutdown() {
 
   glfwDestroyWindow(m_window);
 
+  vkDestroyDevice(m_device, nullptr);
+
   vkDestroyInstance(m_instance, nullptr);
 }

@@ -226,8 +226,7 @@ private:
     }
 
     vkDestroyCommandPool(m_context.getDevice(), commandPool, nullptr);
-
-    vkDestroyDevice(m_context.getDevice(), nullptr);
+    m_swapchain.shutdown();
 
     m_context.shutdown();
 
