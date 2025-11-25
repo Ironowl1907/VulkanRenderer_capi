@@ -1,6 +1,4 @@
-#include "Common/SwapchainSupportDetails.h"
-
-#include "Common/MemoryType.h"
+#include "BufferManager/BufferManager.h"
 #include "Common/Vertex.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
@@ -24,7 +22,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <iostream>
 #include <optional>
 #include <stdexcept>
@@ -76,6 +73,8 @@ private:
 
   VkCommandPool commandPool;
 
+  BufferManager m_bufferManager;
+
   VkImage textureImage;
   VkDeviceMemory textureImageMemory;
   VkImageView textureImageView;
@@ -83,6 +82,7 @@ private:
 
   VkBuffer vertexBuffer;
   VkDeviceMemory vertexBufferMemory;
+
   VkBuffer indexBuffer;
   VkDeviceMemory indexBufferMemory;
 
@@ -127,6 +127,8 @@ private:
     m_swapchain.createFramebuffers(m_renderPass.getRenderPass());
 
     m_pipeline.init(&m_context, m_renderPass);
+
+    m_bufferManager.init(&m_context, &commandPool);
 
     createCommandPool();
     createTextureImage();
@@ -225,10 +227,10 @@ private:
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer, stagingBufferMemory);
+    m_bufferManager.createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                 stagingBuffer, stagingBufferMemory);
 
     void *data;
     vkMapMemory(m_context.getDevice(), stagingBufferMemory, 0, imageSize, 0,
@@ -357,10 +359,10 @@ private:
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer, stagingBufferMemory);
+    m_bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                 stagingBuffer, stagingBufferMemory);
 
     void *data;
     vkMapMemory(m_context.getDevice(), stagingBufferMemory, 0, bufferSize, 0,
@@ -368,12 +370,12 @@ private:
     memcpy(data, vertices.data(), (size_t)bufferSize);
     vkUnmapMemory(m_context.getDevice(), stagingBufferMemory);
 
-    createBuffer(
+    m_bufferManager.createBuffer(
         bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+    m_bufferManager.copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
     vkDestroyBuffer(m_context.getDevice(), stagingBuffer, nullptr);
     vkFreeMemory(m_context.getDevice(), stagingBufferMemory, nullptr);
@@ -384,10 +386,10 @@ private:
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer, stagingBufferMemory);
+    m_bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                 stagingBuffer, stagingBufferMemory);
 
     void *data;
     vkMapMemory(m_context.getDevice(), stagingBufferMemory, 0, bufferSize, 0,
@@ -395,12 +397,12 @@ private:
     memcpy(data, indices.data(), (size_t)bufferSize);
     vkUnmapMemory(m_context.getDevice(), stagingBufferMemory);
 
-    createBuffer(
+    m_bufferManager.createBuffer(
         bufferSize,
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+    m_bufferManager.copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
     vkDestroyBuffer(m_context.getDevice(), stagingBuffer, nullptr);
     vkFreeMemory(m_context.getDevice(), stagingBufferMemory, nullptr);
@@ -414,10 +416,11 @@ private:
     uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-      createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                   uniformBuffers[i], uniformBuffersMemory[i]);
+      m_bufferManager.createBuffer(bufferSize,
+                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                       VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                   uniformBuffers[i], uniformBuffersMemory[i]);
 
       vkMapMemory(m_context.getDevice(), uniformBuffersMemory[i], 0, bufferSize,
                   0, &uniformBuffersMapped[i]);
@@ -494,39 +497,6 @@ private:
     }
   }
 
-  void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
-                    VkMemoryPropertyFlags properties, VkBuffer &buffer,
-                    VkDeviceMemory &bufferMemory) {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(m_context.getDevice(), &bufferInfo, nullptr, &buffer) !=
-        VK_SUCCESS) {
-      throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_context.getDevice(), buffer,
-                                  &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex =
-        findMemoryType(m_context.getPhysicalDevice(),
-                       memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(m_context.getDevice(), &allocInfo, nullptr,
-                         &bufferMemory) != VK_SUCCESS) {
-      throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(m_context.getDevice(), buffer, bufferMemory, 0);
-  }
-
   VkCommandBuffer beginSingleTimeCommands() {
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -558,16 +528,6 @@ private:
     vkQueueWaitIdle(m_context.getGraphicsQueue());
 
     vkFreeCommandBuffers(m_context.getDevice(), commandPool, 1, &commandBuffer);
-  }
-
-  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferCopy copyRegion{};
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-    endSingleTimeCommands(commandBuffer);
   }
 
   void createCommandBuffers() {

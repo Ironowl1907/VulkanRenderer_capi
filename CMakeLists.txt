@@ -23,6 +23,8 @@ add_executable(${PROJECT_NAME}
     src/Renderer/Pipeline/RenderPass.cpp
 
     src/Renderer/Swapchain/Swapchain.cpp
+
+    src/Renderer/BufferManager/BufferManager.cpp
 )
 
 # Include directories
