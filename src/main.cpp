@@ -1,6 +1,7 @@
 #include "Common/SwapchainSupportDetails.h"
 
 #include "Common/MemoryType.h"
+#include "Pipeline/RenderPass.h"
 #include "Swapchain/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 #define GLFW_INCLUDE_VULKAN
@@ -16,7 +17,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -24,7 +24,6 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <optional>
 #include <stdexcept>
 #include <vector>
@@ -108,7 +107,7 @@ private:
   VulkanContext m_context;
   Swapchain m_swapchain;
 
-  VkRenderPass renderPass;
+  RenderPass m_renderPass;
   VkDescriptorSetLayout descriptorSetLayout;
   VkPipelineLayout pipelineLayout;
   VkPipeline graphicsPipeline;
@@ -161,9 +160,9 @@ private:
     m_swapchain.createImageViews();
     m_swapchain.createDepthResources();
 
-    createRenderPass(m_context);
+    m_renderPass.init(m_context, m_swapchain);
 
-    m_swapchain.createFramebuffers(renderPass);
+    m_swapchain.createFramebuffers(m_renderPass.getRenderPass());
 
     createDescriptorSetLayout();
     createGraphicsPipeline();
@@ -192,7 +191,8 @@ private:
   void cleanup() {
     vkDestroyPipeline(m_context.getDevice(), graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(m_context.getDevice(), pipelineLayout, nullptr);
-    vkDestroyRenderPass(m_context.getDevice(), renderPass, nullptr);
+
+    m_renderPass.shutdown();
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
       vkDestroyBuffer(m_context.getDevice(), uniformBuffers[i], nullptr);
@@ -231,71 +231,6 @@ private:
     m_context.shutdown();
 
     glfwTerminate();
-  }
-
-  void createRenderPass(VulkanContext &context) {
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = m_swapchain.getSwapChainImageFormat();
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = m_swapchain.findDepthFormat(context);
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout =
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout =
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                              VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    dependency.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                              VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                               VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment,
-                                                          depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    if (vkCreateRenderPass(m_context.getDevice(), &renderPassInfo, nullptr,
-                           &renderPass) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create render pass!");
-    }
   }
 
   void createDescriptorSetLayout() {
@@ -450,7 +385,7 @@ private:
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.renderPass = m_renderPass.getRenderPass();
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
@@ -866,7 +801,7 @@ private:
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.renderPass = m_renderPass.getRenderPass();
     renderPassInfo.framebuffer =
         m_swapchain.getSwapChainFramebuffers()[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
@@ -989,7 +924,7 @@ private:
     VkSemaphore submitSemaphore = submitSemaphores[swapChainImageIndex];
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-      m_swapchain.recreateSwapChain(renderPass);
+      m_swapchain.recreateSwapChain(m_renderPass.getRenderPass());
       return;
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
       throw std::runtime_error("failed to acquire swap chain image!");
@@ -1041,7 +976,7 @@ private:
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
         framebufferResized) {
       framebufferResized = false;
-      m_swapchain.recreateSwapChain(renderPass);
+      m_swapchain.recreateSwapChain(m_renderPass.getRenderPass());
     } else if (result != VK_SUCCESS) {
       throw std::runtime_error("failed to present swap chain image!");
     }

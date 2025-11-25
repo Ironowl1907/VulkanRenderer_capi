@@ -13,12 +13,11 @@ set(VULKAN_LIBRARY "${VULKAN_SDK_PATH}/lib/libvulkan.so")
 # Create executable
 add_executable(${PROJECT_NAME}
     src/main.cpp
-
-    src/Renderer/Core/VulkanContext.cpp
-
     src/Renderer/Common/MemoryType.cpp
     src/Renderer/Common/SwapchainSupportDetails.cpp
-
+    src/Renderer/Core/VulkanContext.cpp
+    src/Renderer/Pipeline/Pipeline.cpp
+    src/Renderer/Pipeline/RenderPass.cpp
     src/Renderer/Swapchain/Swapchain.cpp
 
 )
