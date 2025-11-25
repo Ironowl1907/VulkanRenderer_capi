@@ -117,12 +117,12 @@ private:
 
     m_context.init(appInfo, framebufferResizeCallback);
 
-    m_swapchain.init(m_context);
+    m_swapchain.init(&m_context);
     m_swapchain.createSwapChain();
     m_swapchain.createImageViews();
     m_swapchain.createDepthResources();
 
-    m_renderPass.init(m_context, m_swapchain);
+    m_renderPass.init(&m_context, m_swapchain);
 
     m_swapchain.createFramebuffers(m_renderPass.getRenderPass());
 

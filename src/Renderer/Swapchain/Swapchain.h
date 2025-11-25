@@ -4,7 +4,7 @@
 #include "vulkan/vulkan_core.h"
 class Swapchain {
 public:
-  void init(VulkanContext &context);
+  void init(VulkanContext *p_context);
 
   void shutdown();
 
@@ -36,7 +36,7 @@ public:
                    VkMemoryPropertyFlags properties, VkImage &image,
                    VkDeviceMemory &imageMemory);
 
-  VkFormat findDepthFormat(VulkanContext &context);
+  VkFormat findDepthFormat(VulkanContext *p_context);
 
   void createSwapChain();
 
@@ -57,7 +57,7 @@ private:
 
   void cleanupSwapChain();
 
-  VkFormat findSupportedFormat(VulkanContext &context,
+  VkFormat findSupportedFormat(VulkanContext *p_context,
                                const std::vector<VkFormat> &candidates,
                                VkImageTiling tiling,
                                VkFormatFeatureFlags features);

@@ -2,6 +2,11 @@
 
 #include "Pipeline/RenderPass.h"
 #include "Swapchain/Swapchain.h"
+
+
+#define VERT_SHADER_PATH "../src/Shaders/vert.spv"
+#define FRAG_SHADER_PATH "../src/Shaders/frag.spv"
+
 class Pipeline {
 public:
   void init(VulkanContext *p_context, RenderPass &renderPass);

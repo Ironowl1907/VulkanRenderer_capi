@@ -5,8 +5,8 @@
 #include <limits>
 #include <stdexcept>
 
-void Swapchain::init(VulkanContext &context) {
-  mp_context = &context;
+void Swapchain::init(VulkanContext *p_context) {
+  mp_context = p_context;
 
   // createSwapChain();
   // createImageViews();
@@ -188,7 +188,7 @@ void Swapchain::recreateSwapChain(VkRenderPass &renderPass) {
 }
 
 void Swapchain::createDepthResources() {
-  VkFormat depthFormat = findDepthFormat(*mp_context);
+  VkFormat depthFormat = findDepthFormat(mp_context);
 
   createImage(
       m_swapChainExtent.width, m_swapChainExtent.height, depthFormat,
@@ -198,21 +198,21 @@ void Swapchain::createDepthResources() {
       createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-VkFormat Swapchain::findDepthFormat(VulkanContext &context) {
+VkFormat Swapchain::findDepthFormat(VulkanContext *p_context) {
   return findSupportedFormat(
-      context,
+      p_context,
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
        VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-VkFormat Swapchain::findSupportedFormat(VulkanContext &context,
+VkFormat Swapchain::findSupportedFormat(VulkanContext *p_context,
                                         const std::vector<VkFormat> &candidates,
                                         VkImageTiling tiling,
                                         VkFormatFeatureFlags features) {
   for (VkFormat format : candidates) {
     VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties(context.getPhysicalDevice(), format,
+    vkGetPhysicalDeviceFormatProperties(p_context->getPhysicalDevice(), format,
                                         &props);
 
     if (tiling == VK_IMAGE_TILING_LINEAR &&

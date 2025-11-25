@@ -6,18 +6,18 @@
 RenderPass::RenderPass() {}
 RenderPass::~RenderPass() {}
 
-void RenderPass::init(VulkanContext &context, Swapchain &swapchain) {
-  mp_context = &context;
+void RenderPass::init(VulkanContext *p_context, Swapchain &swapchain) {
+  mp_context = p_context;
   mp_swapchain = &swapchain;
 
-  createRenderPass(context);
+  createRenderPass(p_context);
 }
 void RenderPass::shutdown() {
 
   vkDestroyRenderPass(mp_context->getDevice(), m_renderPass, nullptr);
 }
 
-void RenderPass::createRenderPass(VulkanContext &context) {
+void RenderPass::createRenderPass(VulkanContext *context) {
   VkAttachmentDescription colorAttachment{};
   colorAttachment.format = mp_swapchain->getSwapChainImageFormat();
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;

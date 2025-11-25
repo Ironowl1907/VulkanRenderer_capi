@@ -15,8 +15,8 @@ void Pipeline::init(VulkanContext *p_context, RenderPass &renderPass) {
   mp_context = p_context;
   createDescriptorSetLayout();
 
-  auto vertShaderCode = readFile("../src/Shaders/vert.spv");
-  auto fragShaderCode = readFile("../src/Shaders/frag.spv");
+  auto vertShaderCode = readFile(VERT_SHADER_PATH);
+  auto fragShaderCode = readFile(FRAG_SHADER_PATH);
   createGraphicsPipeline(renderPass, vertShaderCode, fragShaderCode);
 }
 void Pipeline::shutdown() {
