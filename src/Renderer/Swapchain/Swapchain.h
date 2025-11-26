@@ -26,15 +26,8 @@ public:
     return m_swapChainFramebuffers;
   }
 
-  VkImageView createImageView(VkImage image, VkFormat format,
-                              VkImageAspectFlags aspectFlags);
 
   void recreateSwapChain(VkRenderPass &renderPass);
-
-  void createImage(uint32_t width, uint32_t height, VkFormat format,
-                   VkImageTiling tiling, VkImageUsageFlags usage,
-                   VkMemoryPropertyFlags properties, VkImage &image,
-                   VkDeviceMemory &imageMemory);
 
   VkFormat findDepthFormat(VulkanContext *p_context);
 

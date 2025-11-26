@@ -1,6 +1,6 @@
 #include "pipeline.h"
+#include "Common/Files/readFile.h"
 #include "Common/Vertex.h"
-#include "Common/readFile.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
 #include "Swapchain/Swapchain.h"
@@ -8,8 +8,6 @@
 #include <array>
 #include <stdexcept>
 #include <vector>
-
-#include "Common/readFile.h"
 
 void Pipeline::init(VulkanContext *p_context, RenderPass &renderPass) {
   mp_context = p_context;
