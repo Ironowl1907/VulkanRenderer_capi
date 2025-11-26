@@ -9,12 +9,23 @@ public:
   void loadFromFile(VulkanContext *p_context, BufferManager *p_bufferMan,
                     const std::string &path);
 
-  VkImageView getImageView();
-  VkSampler getSampler();
+  VkImageView getImageView() { return m_textureImageView; }
+  VkSampler getSampler() { return m_textureSampler; }
 
-  void shutdown();
+  void cleanup(VulkanContext *p_context);
 
 private:
+  void createTextureImage(VulkanContext *p_context,
+                          BufferManager *p_bufferManger,
+                          const std::string &path);
+
+  void createTextureImageView(VulkanContext *p_context);
+
+  void transitionImageLayout(VkImage image, VkFormat format,
+                             VkImageLayout oldLayout, VkImageLayout newLayout);
+
+  void createTextureSampler(VulkanContext *p_context);
+
 private:
   VkImage m_textureImage;
   VkDeviceMemory m_textureImageMemory;

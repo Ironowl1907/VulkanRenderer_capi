@@ -26,8 +26,6 @@ public:
     return m_swapChainFramebuffers;
   }
 
-  VkImageView createImageView(VkImage image, VkFormat format,
-                              VkImageAspectFlags aspectFlags);
 
   void recreateSwapChain(VkRenderPass &renderPass);
 

@@ -3,8 +3,8 @@
 #include <stdexcept>
 
 void BufferManager::init(VulkanContext *p_context, VkCommandPool *p_pool) {
-	mp_context = p_context;
-	mp_pool = p_pool;
+  mp_context = p_context;
+  mp_pool = p_pool;
 }
 void BufferManager::shutdown() {}
 
@@ -84,4 +84,25 @@ void BufferManager::endOneTimeCommands(VkCommandBuffer commandBuffer) {
   vkQueueWaitIdle(mp_context->getGraphicsQueue());
 
   vkFreeCommandBuffers(mp_context->getDevice(), *mp_pool, 1, &commandBuffer);
+}
+
+void BufferManager::copyBufferToImage(VkBuffer buffer, VkImage image,
+                                      uint32_t width, uint32_t height) {
+  VkCommandBuffer commandBuffer = beginOneTimeCommands();
+
+  VkBufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = 1;
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {width, height, 1};
+
+  vkCmdCopyBufferToImage(commandBuffer, buffer, image,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+  endOneTimeCommands(commandBuffer);
 }
