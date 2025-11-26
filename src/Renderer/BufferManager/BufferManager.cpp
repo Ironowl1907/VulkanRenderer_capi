@@ -1,5 +1,6 @@
 #include "BufferManager.h"
-#include "Common/MemoryType.h"
+#include "Common/CommandUtils/CommandUtils.h"
+#include "Common/MemoryType/MemoryType.h"
 #include <stdexcept>
 
 void BufferManager::init(VulkanContext *p_context, VkCommandPool *p_pool) {
@@ -44,51 +45,18 @@ void BufferManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 
 void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
                                VkDeviceSize size) {
-  VkCommandBuffer commandBuffer = beginOneTimeCommands();
+  OneTimeSubmit submit(mp_context, mp_pool);
 
   VkBufferCopy copyRegion{};
   copyRegion.size = size;
-  vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+  vkCmdCopyBuffer(submit.get(), srcBuffer, dstBuffer, 1, &copyRegion);
 
-  endOneTimeCommands(commandBuffer);
-}
-
-VkCommandBuffer BufferManager::beginOneTimeCommands() {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = *mp_pool;
-  allocInfo.commandBufferCount = 1;
-
-  VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(mp_context->getDevice(), &allocInfo, &commandBuffer);
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-  return commandBuffer;
-}
-
-void BufferManager::endOneTimeCommands(VkCommandBuffer commandBuffer) {
-  vkEndCommandBuffer(commandBuffer);
-
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
-
-  vkQueueSubmit(mp_context->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(mp_context->getGraphicsQueue());
-
-  vkFreeCommandBuffers(mp_context->getDevice(), *mp_pool, 1, &commandBuffer);
+  // endOneTimeCommands(commandBuffer);
 }
 
 void BufferManager::copyBufferToImage(VkBuffer buffer, VkImage image,
                                       uint32_t width, uint32_t height) {
-  VkCommandBuffer commandBuffer = beginOneTimeCommands();
+  OneTimeSubmit submit(mp_context, mp_pool);
 
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
@@ -101,8 +69,6 @@ void BufferManager::copyBufferToImage(VkBuffer buffer, VkImage image,
   region.imageOffset = {0, 0, 0};
   region.imageExtent = {width, height, 1};
 
-  vkCmdCopyBufferToImage(commandBuffer, buffer, image,
+  vkCmdCopyBufferToImage(submit.get(), buffer, image,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-  endOneTimeCommands(commandBuffer);
 }

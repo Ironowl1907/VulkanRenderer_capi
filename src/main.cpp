@@ -131,6 +131,7 @@ private:
     m_bufferManager.init(&m_context, &commandPool);
 
     createCommandPool();
+    m_demoTexture.init(&m_context, &commandPool);
     m_demoTexture.loadFromFile(&m_context, &m_bufferManager,
                                "../textures/mondongo.jpg");
     createVertexBuffer();

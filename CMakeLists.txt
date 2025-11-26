@@ -14,10 +14,12 @@ set(VULKAN_LIBRARY "${VULKAN_SDK_PATH}/lib/libvulkan.so")
 add_executable(${PROJECT_NAME}
     src/main.cpp
 
-    src/Renderer/Common/MemoryType.cpp
+    src/Renderer/Common/MemoryType/MemoryType.cpp
     src/Renderer/Common/SwapchainSupportDetails.cpp
-    src/Renderer/Common/readFile.cpp
+    src/Renderer/Common/Files/readFile.cpp
     src/Renderer/Common/Images/CreateImage.cpp
+    src/Renderer/Common/CommandUtils/CommandUtils.cpp
+
 
     src/Renderer/Core/VulkanContext.cpp
 
@@ -27,6 +29,8 @@ add_executable(${PROJECT_NAME}
     src/Renderer/Swapchain/Swapchain.cpp
 
     src/Renderer/BufferManager/BufferManager.cpp
+    src/Renderer/Texture/Texture.cpp
+
 )
 
 # Include directories

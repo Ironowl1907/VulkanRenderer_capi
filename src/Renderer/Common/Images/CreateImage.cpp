@@ -1,5 +1,5 @@
 #include "CreateImage.h"
-#include "Common/MemoryType.h"
+#include "Common/MemoryType/MemoryType.h"
 #include "Swapchain/Swapchain.h"
 #include <stdexcept>
 

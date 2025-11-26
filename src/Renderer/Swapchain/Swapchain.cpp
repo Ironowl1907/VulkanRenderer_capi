@@ -1,6 +1,6 @@
 #include "Swapchain.h"
 #include "Common/Images/CreateImage.h"
-#include "Common/MemoryType.h"
+#include "Common/MemoryType/MemoryType.h"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -22,8 +22,8 @@ void Swapchain::createImageViews() {
 
   for (uint32_t i = 0; i < m_swapChainImages.size(); i++) {
     m_swapChainImageViews[i] =
-        createImageView(m_swapChainImages[i], m_swapChainImageFormat,
-                        VK_IMAGE_ASPECT_COLOR_BIT);
+        createImageView(mp_context, m_swapChainImages[i],
+                        m_swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }
 
@@ -175,7 +175,7 @@ void Swapchain::createDepthResources() {
               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage,
               m_depthImageMemory);
   m_depthImageView =
-      createImageView(m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+      createImageView(mp_context, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Swapchain::findDepthFormat(VulkanContext *p_context) {

@@ -1,12 +1,22 @@
 #include "Texture.h"
+#include "Common/CommandUtils/CommandUtils.h"
 #include "Common/Images/CreateImage.h"
 #include "Swapchain/Swapchain.h"
+#include <cassert>
 #include <cstring>
 #include <stb_image.h>
 #include <stdexcept>
 
+void Texture::init(VulkanContext *p_context, VkCommandPool *p_pool) {
+  mp_context = p_context;
+  mp_pool = p_pool;
+}
+
 void Texture::loadFromFile(VulkanContext *p_context, BufferManager *p_bufferMan,
                            const std::string &path) {
+
+  assert(mp_context != nullptr);
+  assert(mp_pool != nullptr);
 
   createTextureImage(p_context, p_bufferMan, path);
   createTextureImageView(p_context);
@@ -63,7 +73,8 @@ void Texture::createTextureImage(VulkanContext *p_context,
 void Texture::transitionImageLayout(VkImage image, VkFormat format,
                                     VkImageLayout oldLayout,
                                     VkImageLayout newLayout) {
-  VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+  // VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+  OneTimeSubmit submit(mp_context, mp_pool);
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -99,10 +110,8 @@ void Texture::transitionImageLayout(VkImage image, VkFormat format,
     throw std::invalid_argument("unsupported layout transition!");
   }
 
-  vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0,
+  vkCmdPipelineBarrier(submit.get(), sourceStage, destinationStage, 0, 0,
                        nullptr, 0, nullptr, 1, &barrier);
-
-  endSingleTimeCommands(commandBuffer);
 }
 
 void Texture::createTextureImageView(VulkanContext *p_context) {

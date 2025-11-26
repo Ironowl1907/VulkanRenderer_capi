@@ -6,6 +6,7 @@
 #include <string>
 class Texture {
 public:
+void init(VulkanContext *p_context, VkCommandPool *p_pool);
   void loadFromFile(VulkanContext *p_context, BufferManager *p_bufferMan,
                     const std::string &path);
 
@@ -31,4 +32,7 @@ private:
   VkDeviceMemory m_textureImageMemory;
   VkImageView m_textureImageView;
   VkSampler m_textureSampler;
+
+  VulkanContext *mp_context;
+  VkCommandPool *mp_pool;
 };

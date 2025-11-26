@@ -16,8 +16,6 @@ public:
   void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
                          uint32_t height);
 
-  [[nodiscard]] VkCommandBuffer beginOneTimeCommands();
-  void endOneTimeCommands(VkCommandBuffer);
 
 private:
   VulkanContext *mp_context;
