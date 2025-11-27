@@ -1,10 +1,11 @@
 #pragma once
 
+#include "Commands/CommandManager.h"
 #include "Swapchain/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 class BufferManager {
 public:
-  void init(VulkanContext *p_context, VkCommandPool *p_pool);
+  void init(VulkanContext *p_context, CommandManager *p_cmdManager);
   void shutdown();
 
   void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
@@ -16,8 +17,7 @@ public:
   void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
                          uint32_t height);
 
-
 private:
   VulkanContext *mp_context;
-  VkCommandPool *mp_pool;
+  CommandManager *mp_cmdManager;
 };

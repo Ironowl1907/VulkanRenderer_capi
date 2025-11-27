@@ -32,6 +32,9 @@ add_executable(${PROJECT_NAME}
     src/Renderer/Texture/Texture.cpp
     src/Renderer/DescriptorManager/DescriptorManager.cpp
 
+
+    ./src/Renderer/Commands/CommandManager.cpp
+
 )
 
 # Include directories

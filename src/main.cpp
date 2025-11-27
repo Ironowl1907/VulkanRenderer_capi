@@ -1,4 +1,5 @@
 #include "BufferManager/BufferManager.h"
+#include "Commands/CommandManager.h"
 #include "Common/Vertex.h"
 #include "DescriptorManager/DescriptorManager.h"
 #include "Pipeline/Pipeline.h"
@@ -70,9 +71,9 @@ private:
   RenderPass m_renderPass;
   Pipeline m_pipeline;
 
-  VkCommandPool commandPool;
-
   BufferManager m_bufferManager;
+
+  CommandManager m_commandManager;
 
   Texture m_demoTexture;
 
@@ -88,8 +89,6 @@ private:
 
   DescriptorManager m_descriptorManager;
   std::vector<VkDescriptorSet> m_descriptorSets;
-
-  std::vector<VkCommandBuffer> commandBuffers;
 
   std::vector<VkSemaphore> submitSemaphores;
   std::vector<VkSemaphore> adquiredSemaphore;
@@ -124,10 +123,12 @@ private:
 
     m_pipeline.init(&m_context, m_renderPass);
 
-    m_bufferManager.init(&m_context, &commandPool);
+    m_commandManager.init(&m_context);
+    m_commandManager.createCommandPools();
 
-    createCommandPool();
-    m_demoTexture.init(&m_context, &commandPool);
+    m_bufferManager.init(&m_context, &m_commandManager);
+
+    m_demoTexture.init(&m_context, &m_commandManager);
     m_demoTexture.loadFromFile(&m_context, &m_bufferManager,
                                "../textures/mondongo.jpg");
     createVertexBuffer();
@@ -139,7 +140,7 @@ private:
         MAX_FRAMES_IN_FLIGHT, m_pipeline.getDescriptionSetLayout());
     m_descriptorSets = m_descriptorManager.allocateSets(
         layouts, uniformBuffers, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
-    createCommandBuffers();
+    m_commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
     createSyncObjects();
   }
 
@@ -183,27 +184,13 @@ private:
       vkDestroyFence(m_context.getDevice(), frameFences[i], nullptr);
     }
 
-    vkDestroyCommandPool(m_context.getDevice(), commandPool, nullptr);
+    m_commandManager.shutdown();
+
     m_swapchain.shutdown();
 
     m_context.shutdown();
 
     glfwTerminate();
-  }
-
-  void createCommandPool() {
-    QueueFamilyIndices queueFamilyIndices =
-        m_context.findQueueFamilies(m_context.getPhysicalDevice());
-
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-    if (vkCreateCommandPool(m_context.getDevice(), &poolInfo, nullptr,
-                            &commandPool) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create graphics command pool!");
-    }
   }
 
   bool hasStencilComponent(VkFormat format) {
@@ -281,54 +268,6 @@ private:
 
       vkMapMemory(m_context.getDevice(), uniformBuffersMemory[i], 0, bufferSize,
                   0, &uniformBuffersMapped[i]);
-    }
-  }
-
-  VkCommandBuffer beginSingleTimeCommands() {
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(m_context.getDevice(), &allocInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    return commandBuffer;
-  }
-
-  void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(m_context.getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(m_context.getGraphicsQueue());
-
-    vkFreeCommandBuffers(m_context.getDevice(), commandPool, 1, &commandBuffer);
-  }
-
-  void createCommandBuffers() {
-    commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
-
-    if (vkAllocateCommandBuffers(m_context.getDevice(), &allocInfo,
-                                 commandBuffers.data()) != VK_SUCCESS) {
-      throw std::runtime_error("failed to allocate command buffers!");
     }
   }
 
@@ -472,7 +411,8 @@ private:
       throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    VkCommandBuffer commandBuffer = commandBuffers[inFlightCurrentFrame];
+    VkCommandBuffer commandBuffer =
+        m_commandManager.getFrameCommandBuffer(inFlightCurrentFrame);
 
     updateUniformBuffer(inFlightCurrentFrame);
 

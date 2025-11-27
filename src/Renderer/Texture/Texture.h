@@ -1,12 +1,13 @@
 #pragma once
 
 #include "BufferManager/BufferManager.h"
+#include "Commands/CommandManager.h"
 #include "Swapchain/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 #include <string>
 class Texture {
 public:
-void init(VulkanContext *p_context, VkCommandPool *p_pool);
+  void init(VulkanContext *p_context, CommandManager * p_cmdManager);
   void loadFromFile(VulkanContext *p_context, BufferManager *p_bufferMan,
                     const std::string &path);
 
@@ -34,5 +35,5 @@ private:
   VkSampler m_textureSampler;
 
   VulkanContext *mp_context;
-  VkCommandPool *mp_pool;
+  CommandManager *mp_cmdManager;
 };
