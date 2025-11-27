@@ -1,5 +1,7 @@
 #include "BufferManager/BufferManager.h"
+#include "Commands/CommandManager.h"
 #include "Common/Vertex.h"
+#include "DescriptorManager/DescriptorManager.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
 #include "Swapchain/Swapchain.h"
@@ -29,6 +31,7 @@
 #include <vector>
 
 #include "Common/Images/CreateImage.h"
+#include "Common/UniformBufferObject.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -40,12 +43,6 @@ const bool enableValidationLayers = false;
 #else
 const bool enableValidationLayers = true;
 #endif
-
-struct UniformBufferObject {
-  alignas(16) glm::mat4 model;
-  alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 proj;
-};
 
 const std::vector<Vertex> vertices = {
     {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
@@ -74,9 +71,9 @@ private:
   RenderPass m_renderPass;
   Pipeline m_pipeline;
 
-  VkCommandPool commandPool;
-
   BufferManager m_bufferManager;
+
+  CommandManager m_commandManager;
 
   Texture m_demoTexture;
 
@@ -90,10 +87,8 @@ private:
   std::vector<VkDeviceMemory> uniformBuffersMemory;
   std::vector<void *> uniformBuffersMapped;
 
-  VkDescriptorPool descriptorPool;
-  std::vector<VkDescriptorSet> descriptorSets;
-
-  std::vector<VkCommandBuffer> commandBuffers;
+  DescriptorManager m_descriptorManager;
+  std::vector<VkDescriptorSet> m_descriptorSets;
 
   std::vector<VkSemaphore> submitSemaphores;
   std::vector<VkSemaphore> adquiredSemaphore;
@@ -128,18 +123,24 @@ private:
 
     m_pipeline.init(&m_context, m_renderPass);
 
-    m_bufferManager.init(&m_context, &commandPool);
+    m_commandManager.init(&m_context);
+    m_commandManager.createCommandPools();
 
-    createCommandPool();
-    m_demoTexture.init(&m_context, &commandPool);
+    m_bufferManager.init(&m_context, &m_commandManager);
+
+    m_demoTexture.init(&m_context, &m_commandManager);
     m_demoTexture.loadFromFile(&m_context, &m_bufferManager,
                                "../textures/mondongo.jpg");
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();
-    createDescriptorPool();
-    createDescriptorSets();
-    createCommandBuffers();
+    m_descriptorManager.init(&m_context);
+    m_descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
+    std::vector<VkDescriptorSetLayout> layouts(
+        MAX_FRAMES_IN_FLIGHT, m_pipeline.getDescriptionSetLayout());
+    m_descriptorSets = m_descriptorManager.allocateSets(
+        layouts, uniformBuffers, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
+    m_commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
     createSyncObjects();
   }
 
@@ -161,12 +162,12 @@ private:
       vkFreeMemory(m_context.getDevice(), uniformBuffersMemory[i], nullptr);
     }
 
-    vkDestroyDescriptorPool(m_context.getDevice(), descriptorPool, nullptr);
-
     m_demoTexture.cleanup(&m_context);
 
     vkDestroyDescriptorSetLayout(m_context.getDevice(),
                                  m_pipeline.getDescriptionSetLayout(), nullptr);
+
+    m_descriptorManager.shutdown();
 
     vkDestroyBuffer(m_context.getDevice(), indexBuffer, nullptr);
     vkFreeMemory(m_context.getDevice(), indexBufferMemory, nullptr);
@@ -183,32 +184,13 @@ private:
       vkDestroyFence(m_context.getDevice(), frameFences[i], nullptr);
     }
 
-    vkDestroyCommandPool(m_context.getDevice(), commandPool, nullptr);
+    m_commandManager.shutdown();
+
     m_swapchain.shutdown();
 
     m_context.shutdown();
 
     glfwTerminate();
-  }
-
-  void createCommandPool() {
-    QueueFamilyIndices queueFamilyIndices =
-        m_context.findQueueFamilies(m_context.getPhysicalDevice());
-
-    VkCommandPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-
-    if (vkCreateCommandPool(m_context.getDevice(), &poolInfo, nullptr,
-                            &commandPool) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create graphics command pool!");
-    }
-  }
-
-  bool hasStencilComponent(VkFormat format) {
-    return format == VK_FORMAT_D32_SFLOAT_S8_UINT ||
-           format == VK_FORMAT_D24_UNORM_S8_UINT;
   }
 
   void createVertexBuffer() {
@@ -284,124 +266,6 @@ private:
     }
   }
 
-  void createDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-    VkDescriptorPoolCreateInfo poolInfo{};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-
-    if (vkCreateDescriptorPool(m_context.getDevice(), &poolInfo, nullptr,
-                               &descriptorPool) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create descriptor pool!");
-    }
-  }
-
-  void createDescriptorSets() {
-    std::vector<VkDescriptorSetLayout> layouts(
-        MAX_FRAMES_IN_FLIGHT, m_pipeline.getDescriptionSetLayout());
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
-
-    descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(m_context.getDevice(), &allocInfo,
-                                 descriptorSets.data()) != VK_SUCCESS) {
-      throw std::runtime_error("failed to allocate descriptor sets!");
-    }
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-      VkDescriptorBufferInfo bufferInfo{};
-      bufferInfo.buffer = uniformBuffers[i];
-      bufferInfo.offset = 0;
-      bufferInfo.range = sizeof(UniformBufferObject);
-
-      VkDescriptorImageInfo imageInfo{};
-      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      imageInfo.imageView = m_demoTexture.getImageView();
-      imageInfo.sampler = m_demoTexture.getSampler();
-
-      std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-      descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptorWrites[0].dstSet = descriptorSets[i];
-      descriptorWrites[0].dstBinding = 0;
-      descriptorWrites[0].dstArrayElement = 0;
-      descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      descriptorWrites[0].descriptorCount = 1;
-      descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-      descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptorWrites[1].dstSet = descriptorSets[i];
-      descriptorWrites[1].dstBinding = 1;
-      descriptorWrites[1].dstArrayElement = 0;
-      descriptorWrites[1].descriptorType =
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      descriptorWrites[1].descriptorCount = 1;
-      descriptorWrites[1].pImageInfo = &imageInfo;
-
-      vkUpdateDescriptorSets(m_context.getDevice(),
-                             static_cast<uint32_t>(descriptorWrites.size()),
-                             descriptorWrites.data(), 0, nullptr);
-    }
-  }
-
-  VkCommandBuffer beginSingleTimeCommands() {
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = commandPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(m_context.getDevice(), &allocInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    return commandBuffer;
-  }
-
-  void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(m_context.getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(m_context.getGraphicsQueue());
-
-    vkFreeCommandBuffers(m_context.getDevice(), commandPool, 1, &commandBuffer);
-  }
-
-  void createCommandBuffers() {
-    commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
-
-    if (vkAllocateCommandBuffers(m_context.getDevice(), &allocInfo,
-                                 commandBuffers.data()) != VK_SUCCESS) {
-      throw std::runtime_error("failed to allocate command buffers!");
-    }
-  }
-
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -453,7 +317,8 @@ private:
 
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             m_pipeline.getPipelineLayout(), 0, 1,
-                            &descriptorSets[inFlightCurrentFrame], 0, nullptr);
+                            &m_descriptorSets[inFlightCurrentFrame], 0,
+                            nullptr);
 
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
                      0, 0);
@@ -541,7 +406,8 @@ private:
       throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    VkCommandBuffer commandBuffer = commandBuffers[inFlightCurrentFrame];
+    VkCommandBuffer commandBuffer =
+        m_commandManager.getFrameCommandBuffer(inFlightCurrentFrame);
 
     updateUniformBuffer(inFlightCurrentFrame);
 

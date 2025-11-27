@@ -7,16 +7,13 @@
 #include <stb_image.h>
 #include <stdexcept>
 
-void Texture::init(VulkanContext *p_context, VkCommandPool *p_pool) {
+void Texture::init(VulkanContext *p_context, CommandManager *p_cmdManager) {
   mp_context = p_context;
-  mp_pool = p_pool;
+  mp_cmdManager = p_cmdManager;
 }
 
 void Texture::loadFromFile(VulkanContext *p_context, BufferManager *p_bufferMan,
                            const std::string &path) {
-
-  assert(mp_context != nullptr);
-  assert(mp_pool != nullptr);
 
   createTextureImage(p_context, p_bufferMan, path);
   createTextureImageView(p_context);
@@ -73,8 +70,7 @@ void Texture::createTextureImage(VulkanContext *p_context,
 void Texture::transitionImageLayout(VkImage image, VkFormat format,
                                     VkImageLayout oldLayout,
                                     VkImageLayout newLayout) {
-  // VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-  OneTimeSubmit submit(mp_context, mp_pool);
+  OneTimeSubmit submit(mp_cmdManager);
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

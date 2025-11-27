@@ -30,6 +30,10 @@ add_executable(${PROJECT_NAME}
 
     src/Renderer/BufferManager/BufferManager.cpp
     src/Renderer/Texture/Texture.cpp
+    src/Renderer/DescriptorManager/DescriptorManager.cpp
+
+
+    ./src/Renderer/Commands/CommandManager.cpp
 
 )
 

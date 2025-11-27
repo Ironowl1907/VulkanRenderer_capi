@@ -3,9 +3,10 @@
 #include "Common/MemoryType/MemoryType.h"
 #include <stdexcept>
 
-void BufferManager::init(VulkanContext *p_context, VkCommandPool *p_pool) {
+void BufferManager::init(VulkanContext *p_context,
+                         CommandManager *p_cmdManager) {
   mp_context = p_context;
-  mp_pool = p_pool;
+  mp_cmdManager = p_cmdManager;
 }
 void BufferManager::shutdown() {}
 
@@ -45,7 +46,7 @@ void BufferManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
 
 void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
                                VkDeviceSize size) {
-  OneTimeSubmit submit(mp_context, mp_pool);
+  OneTimeSubmit submit(mp_cmdManager);
 
   VkBufferCopy copyRegion{};
   copyRegion.size = size;
@@ -56,7 +57,7 @@ void BufferManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer,
 
 void BufferManager::copyBufferToImage(VkBuffer buffer, VkImage image,
                                       uint32_t width, uint32_t height) {
-  OneTimeSubmit submit(mp_context, mp_pool);
+  OneTimeSubmit submit(mp_cmdManager);
 
   VkBufferImageCopy region{};
   region.bufferOffset = 0;

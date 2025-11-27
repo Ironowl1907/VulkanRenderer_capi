@@ -1,27 +1,21 @@
 #pragma once
 
+#include "Commands/CommandManager.h"
 #include "Swapchain/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 
-[[nodiscard]] VkCommandBuffer beginOneTimeCommands(VulkanContext *p_context,
-                                                   VkCommandPool *p_pool);
-
-void endOneTimeCommands(VulkanContext *p_context, VkCommandPool *p_pool,
-                        VkCommandBuffer *p_commandBuffer);
-
 class OneTimeSubmit {
 public:
-  OneTimeSubmit(VulkanContext *p_ctx, VkCommandPool *p_pool)
-      : mp_ctx(p_ctx), mp_pool(p_pool) {
-    m_cmd = beginOneTimeCommands(mp_ctx, mp_pool);
+  OneTimeSubmit(CommandManager *p_commandManager)
+      : mp_commandManager(p_commandManager) {
+    m_cmd = mp_commandManager->beginOneTimeCommands();
   }
 
-  ~OneTimeSubmit() { endOneTimeCommands(mp_ctx, mp_pool, &m_cmd); }
+  ~OneTimeSubmit() { mp_commandManager->endOneTimeCommands(m_cmd); }
 
   VkCommandBuffer get() const { return m_cmd; }
 
 private:
-  VulkanContext *mp_ctx;
-  VkCommandPool *mp_pool;
+  CommandManager *mp_commandManager;
   VkCommandBuffer m_cmd;
 };
