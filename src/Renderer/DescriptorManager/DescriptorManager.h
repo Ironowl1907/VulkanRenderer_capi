@@ -19,14 +19,9 @@ public:
               const std::vector<VkBuffer> &uniformBuffers,
               VkImageView textureView, VkSampler textureSampler);
 
-  std::vector<VkDescriptorSet> &getDescriptorSets() { return m_descriptorSets; }
-
-
-	void shutdown();
+  void shutdown();
 
 private:
   VulkanContext *mp_context;
   VkDescriptorPool m_pool;
-
-  std::vector<VkDescriptorSet> m_descriptorSets;
 };

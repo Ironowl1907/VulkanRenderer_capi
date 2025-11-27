@@ -3,6 +3,7 @@
 #include "Texture/Texture.h"
 #include <array>
 #include <stdexcept>
+#include <vector>
 
 void DescriptorManager::init(VulkanContext *p_context) {
   mp_context = p_context;
@@ -33,15 +34,17 @@ DescriptorManager::allocateSets(std::vector<VkDescriptorSetLayout> layouts,
                                 std::vector<VkBuffer> &uniformBuffers,
                                 Texture &texutre, uint32_t framesInFlight) {
 
+  std::vector<VkDescriptorSet> descriptorSets;
+
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = m_pool;
   allocInfo.descriptorSetCount = static_cast<uint32_t>(framesInFlight);
   allocInfo.pSetLayouts = layouts.data();
 
-  m_descriptorSets.resize(framesInFlight);
+  descriptorSets.resize(framesInFlight);
   if (vkAllocateDescriptorSets(mp_context->getDevice(), &allocInfo,
-                               m_descriptorSets.data()) != VK_SUCCESS) {
+                               descriptorSets.data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
@@ -59,7 +62,7 @@ DescriptorManager::allocateSets(std::vector<VkDescriptorSetLayout> layouts,
     std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = m_descriptorSets[i];
+    descriptorWrites[0].dstSet = descriptorSets[i];
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -67,7 +70,7 @@ DescriptorManager::allocateSets(std::vector<VkDescriptorSetLayout> layouts,
     descriptorWrites[0].pBufferInfo = &bufferInfo;
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = m_descriptorSets[i];
+    descriptorWrites[1].dstSet = descriptorSets[i];
     descriptorWrites[1].dstBinding = 1;
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType =
@@ -79,6 +82,7 @@ DescriptorManager::allocateSets(std::vector<VkDescriptorSetLayout> layouts,
                            static_cast<uint32_t>(descriptorWrites.size()),
                            descriptorWrites.data(), 0, nullptr);
   }
+  return descriptorSets;
 }
 
 void DescriptorManager::update(std::vector<VkDescriptorSet> &sets,
@@ -88,6 +92,5 @@ void DescriptorManager::update(std::vector<VkDescriptorSet> &sets,
 
 void DescriptorManager::shutdown() {
 
-
-    vkDestroyDescriptorPool(mp_context->getDevice(), m_pool, nullptr);
+  vkDestroyDescriptorPool(mp_context->getDevice(), m_pool, nullptr);
 }

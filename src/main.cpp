@@ -87,6 +87,7 @@ private:
   std::vector<void *> uniformBuffersMapped;
 
   DescriptorManager m_descriptorManager;
+  std::vector<VkDescriptorSet> m_descriptorSets;
 
   std::vector<VkCommandBuffer> commandBuffers;
 
@@ -136,8 +137,8 @@ private:
     m_descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
     std::vector<VkDescriptorSetLayout> layouts(
         MAX_FRAMES_IN_FLIGHT, m_pipeline.getDescriptionSetLayout());
-    m_descriptorManager.allocateSets(layouts, uniformBuffers, m_demoTexture,
-                                     MAX_FRAMES_IN_FLIGHT);
+    m_descriptorSets = m_descriptorManager.allocateSets(
+        layouts, uniformBuffers, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
     createCommandBuffers();
     createSyncObjects();
   }
@@ -164,6 +165,8 @@ private:
 
     vkDestroyDescriptorSetLayout(m_context.getDevice(),
                                  m_pipeline.getDescriptionSetLayout(), nullptr);
+
+    m_descriptorManager.shutdown();
 
     vkDestroyBuffer(m_context.getDevice(), indexBuffer, nullptr);
     vkFreeMemory(m_context.getDevice(), indexBufferMemory, nullptr);
@@ -378,11 +381,10 @@ private:
 
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-    vkCmdBindDescriptorSets(
-        commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-        m_pipeline.getPipelineLayout(), 0, 1,
-        &m_descriptorManager.getDescriptorSets()[inFlightCurrentFrame], 0,
-        nullptr);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            m_pipeline.getPipelineLayout(), 0, 1,
+                            &m_descriptorSets[inFlightCurrentFrame], 0,
+                            nullptr);
 
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
                      0, 0);
