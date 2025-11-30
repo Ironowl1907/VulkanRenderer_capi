@@ -42,6 +42,13 @@ const std::vector<Vertex> vertices = {
 
 const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
+void Renderer::init(const std::string &vertShaderPath,
+                    const std::string &fragShaderPath) {
+  m_vertShaderPath = vertShaderPath;
+  m_fragShaderPath = fragShaderPath;
+  initVulkan();
+}
+
 void Renderer::framebufferResizeCallback(GLFWwindow *window, int width,
                                          int height) {
   auto app = reinterpret_cast<Renderer *>(glfwGetWindowUserPointer(window));
@@ -57,7 +64,6 @@ void Renderer::initVulkan() {
 
   m_context.init(appInfo, framebufferResizeCallback);
 
-
   m_swapchain.init(&m_context);
   m_swapchain.createSwapChain();
   m_swapchain.createImageViews();
@@ -67,7 +73,7 @@ void Renderer::initVulkan() {
 
   m_swapchain.createFramebuffers(m_renderPass.getRenderPass());
 
-  m_pipeline.init(&m_context, m_renderPass);
+  m_pipeline.init(&m_context, m_renderPass, m_vertShaderPath, m_fragShaderPath);
 
   m_commandManager.init(&m_context);
   m_commandManager.createCommandPools();

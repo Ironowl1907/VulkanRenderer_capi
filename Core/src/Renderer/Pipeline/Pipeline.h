@@ -3,13 +3,10 @@
 #include "Pipeline/RenderPass.h"
 #include "Swapchain/Swapchain.h"
 
-
-#define VERT_SHADER_PATH "../App/Shaders/vert.spv"
-#define FRAG_SHADER_PATH "../App/Shaders/frag.spv"
-
 class Pipeline {
 public:
-  void init(VulkanContext *p_context, RenderPass &renderPass);
+  void init(VulkanContext *p_context, RenderPass &renderPass,
+            std::string &vertShaderPath, std::string &fragShaderPath);
   void shutdown();
 
   VkDescriptorSetLayout &getDescriptionSetLayout() {

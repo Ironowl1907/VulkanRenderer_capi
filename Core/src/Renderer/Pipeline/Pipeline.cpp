@@ -6,15 +6,20 @@
 #include "Swapchain/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 #include <array>
+#include <cassert>
 #include <stdexcept>
 #include <vector>
 
-void Pipeline::init(VulkanContext *p_context, RenderPass &renderPass) {
+void Pipeline::init(VulkanContext *p_context, RenderPass &renderPass,
+                    std::string &vertShaderPath, std::string &fragShaderPath) {
+  assert(!fragShaderPath.empty());
+  assert(!vertShaderPath.empty());
+
   mp_context = p_context;
   createDescriptorSetLayout();
 
-  auto vertShaderCode = readFile(VERT_SHADER_PATH);
-  auto fragShaderCode = readFile(FRAG_SHADER_PATH);
+  auto vertShaderCode = readFile(vertShaderPath);
+  auto fragShaderCode = readFile(fragShaderPath);
   createGraphicsPipeline(renderPass, vertShaderCode, fragShaderCode);
 }
 void Pipeline::shutdown() {
@@ -53,8 +58,6 @@ void Pipeline::createDescriptorSetLayout() {
 void Pipeline::createGraphicsPipeline(RenderPass &renderPass,
                                       std::vector<char> vertShaderCode,
                                       std::vector<char> fragShaderCode) {
-  // auto vertShaderCode = readFile("../src/Shaders/vert.spv");
-  // auto fragShaderCode = readFile("../src/Shaders/frag.spv");
 
   VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
   VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);

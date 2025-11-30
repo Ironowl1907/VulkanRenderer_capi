@@ -19,11 +19,26 @@
 
 class Renderer {
 public:
-  void initVulkan();
+  void init(const std::string &vertShaderPath,
+            const std::string &fragShaderPath);
   void update();
   void cleanup();
 
 private:
+  static void framebufferResizeCallback(GLFWwindow *window, int width,
+                                        int height);
+  void createVertexBuffer();
+  void createIndexBuffer();
+  void createUniformBuffers();
+  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+  void createSyncObjects();
+  void updateUniformBuffer(uint32_t currentImage);
+  void drawFrame();
+  void initVulkan();
+
+private:
+  std::string m_vertShaderPath;
+  std::string m_fragShaderPath;
   VulkanContext m_context;
   Swapchain m_swapchain;
   RenderPass m_renderPass;
@@ -55,15 +70,4 @@ private:
   uint32_t inFlightCurrentFrame = 0;
 
   bool framebufferResized = false;
-
-  static void framebufferResizeCallback(GLFWwindow *window, int width,
-                                        int height);
-
-  void createVertexBuffer();
-  void createIndexBuffer();
-  void createUniformBuffers();
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-  void createSyncObjects();
-  void updateUniformBuffer(uint32_t currentImage);
-  void drawFrame();
 };

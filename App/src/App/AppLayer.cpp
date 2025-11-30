@@ -6,7 +6,10 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
-AppLayer::AppLayer() { m_renderer.initVulkan(); }
+#define VERT_SHADER_PATH "../App/Shaders/vert.spv"
+#define FRAG_SHADER_PATH "../App/Shaders/frag.spv"
+
+AppLayer::AppLayer() { m_renderer.init(VERT_SHADER_PATH, FRAG_SHADER_PATH); }
 
 AppLayer::~AppLayer() { m_renderer.cleanup(); }
 
