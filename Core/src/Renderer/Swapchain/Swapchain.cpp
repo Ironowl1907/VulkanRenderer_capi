@@ -1,6 +1,7 @@
 #include "Swapchain.h"
 #include "Common/Images/CreateImage.h"
 #include "Common/MemoryType/MemoryType.h"
+#include "Core/Application.h"
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -117,7 +118,8 @@ Swapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
     return capabilities.currentExtent;
   } else {
     int width, height;
-    glfwGetFramebufferSize(mp_context->getWindow(), &width, &height);
+    glfwGetFramebufferSize(Core::Application::Get().getWindow()->getHandle(),
+                           &width, &height);
 
     VkExtent2D actualExtent = {static_cast<uint32_t>(width),
                                static_cast<uint32_t>(height)};
@@ -151,9 +153,11 @@ void Swapchain::cleanupSwapChain() {
 
 void Swapchain::recreateSwapChain(VkRenderPass &renderPass) {
   int width = 0, height = 0;
-  glfwGetFramebufferSize(mp_context->getWindow(), &width, &height);
+  glfwGetFramebufferSize(Core::Application::Get().getWindow()->getHandle(),
+                         &width, &height);
   while (width == 0 || height == 0) {
-    glfwGetFramebufferSize(mp_context->getWindow(), &width, &height);
+    glfwGetFramebufferSize(Core::Application::Get().getWindow()->getHandle(),
+                           &width, &height);
     glfwWaitEvents();
   }
 
@@ -174,8 +178,8 @@ void Swapchain::createDepthResources() {
               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_depthImage,
               m_depthImageMemory);
-  m_depthImageView =
-      createImageView(mp_context, m_depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+  m_depthImageView = createImageView(mp_context, m_depthImage, depthFormat,
+                                     VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Swapchain::findDepthFormat(VulkanContext *p_context) {

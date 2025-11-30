@@ -1,57 +1,15 @@
-cmake_minimum_required(VERSION 3.15)
-project(VulkanRenderer VERSION 1.0.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.10)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+project(Architecture)
 
-set(VULKAN_SDK_PATH "/home/ironowl/vulkan_sdk/1.4.328.1/x86_64/" CACHE PATH "Path to Vulkan SDK")
+set(CMAKE_CXX_STANDARD 23)
 
-set(VULKAN_INCLUDE_DIR "${VULKAN_SDK_PATH}/include")
-set(VULKAN_LIBRARY_DIR "${VULKAN_SDK_PATH}/lib")
-set(VULKAN_LIBRARY "${VULKAN_SDK_PATH}/lib/libvulkan.so") 
+# Generate compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Create executable
-add_executable(${PROJECT_NAME}
-    src/main.cpp
+# Dependencies
+# include(Dependencies.cmake)
 
-    src/Renderer/Common/MemoryType/MemoryType.cpp
-    src/Renderer/Common/SwapchainSupportDetails.cpp
-    src/Renderer/Common/Files/readFile.cpp
-    src/Renderer/Common/Images/CreateImage.cpp
-    src/Renderer/Common/CommandUtils/CommandUtils.cpp
-
-
-    src/Renderer/Core/VulkanContext.cpp
-
-    src/Renderer/Pipeline/Pipeline.cpp
-    src/Renderer/Pipeline/RenderPass.cpp
-
-    src/Renderer/Swapchain/Swapchain.cpp
-
-    src/Renderer/BufferManager/BufferManager.cpp
-    src/Renderer/Texture/Texture.cpp
-    src/Renderer/DescriptorManager/DescriptorManager.cpp
-
-
-    ./src/Renderer/Commands/CommandManager.cpp
-
-)
-
-# Include directories
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${VULKAN_INCLUDE_DIR}
-    ${CMAKE_SOURCE_DIR}/include
-    vendor/
-    src/Renderer
-)
-
-# Link libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    ${VULKAN_LIBRARY}
-    glfw
-)
-
-# Print configuration info
-message(STATUS "Vulkan SDK Path: ${VULKAN_SDK_PATH}")
-message(STATUS "Vulkan Include: ${VULKAN_INCLUDE_DIR}")
-message(STATUS "Vulkan Library: ${VULKAN_LIBRARY}")
+# Projects
+add_subdirectory(Core)
+add_subdirectory(App)
