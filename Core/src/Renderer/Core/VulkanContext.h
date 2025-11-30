@@ -1,3 +1,4 @@
+#include "Core/Window.h"
 #include "vulkan/vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <cassert>
@@ -40,8 +41,7 @@ public:
   void shutdown();
 
   const VkInstance &getInstance() const { return m_instance; }
-  GLFWwindow *getWindow() { return m_window; }
-  VkSurfaceKHR &getSurface() { return m_surface; }
+  VkSurfaceKHR getSurface() { return m_surface; }
 
   VkPhysicalDevice &getPhysicalDevice() { return m_physicalDevice; }
   VkDevice &getDevice() { return m_device; }
@@ -58,9 +58,6 @@ public:
   }
 
 private:
-  void initWindow(int width, int height,
-                  void (*resizecallback)(GLFWwindow *window, int width,
-                                         int height));
   void initVulkan(bool validationLayersEnabled,
                   std::vector<const char *> validationLayers);
   bool checkValidationLayerSupport(std::vector<const char *> validationLayers);
@@ -82,8 +79,6 @@ private:
                                      VkDebugUtilsMessengerEXT debugMessenger,
                                      const VkAllocationCallbacks *pAllocator);
 
-  void createSurface();
-
   void pickPhysicalDevice();
 
   bool isDeviceSuitable(VkPhysicalDevice device);
@@ -100,8 +95,6 @@ private:
   VkDebugUtilsMessengerEXT m_debugMessenger;
 
   VkSurfaceKHR m_surface;
-
-  GLFWwindow *m_window;
 
   VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 

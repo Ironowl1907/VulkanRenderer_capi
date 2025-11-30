@@ -1,5 +1,6 @@
 #include "VulkanContext.h"
 #include "Common/SwapchainSupportDetails.h"
+#include "Core/Application.h"
 #include "vulkan/vulkan_core.h"
 #include <GLFW/glfw3.h>
 #include <cstring>
@@ -63,7 +64,6 @@ bool VulkanContext::checkValidationLayerSupport(
 void VulkanContext::init(ApplicationInfo info,
                          void (*resizeCallback)(GLFWwindow *window, int width,
                                                 int height)) {
-  initWindow(info.width, info.height, resizeCallback);
   initVulkan(info.validationLayersEnabled, info.validationLayers);
 
   pickPhysicalDevice();
@@ -119,18 +119,6 @@ void VulkanContext::destroyDebugUtilsMessengerEXT(
   }
 }
 
-void VulkanContext::initWindow(int width, int height,
-                               void (*resizecallback)(GLFWwindow *window,
-                                                      int width, int height)) {
-  glfwInit();
-
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-  m_window =
-      glfwCreateWindow(width, height, "Vulkan Renderer", nullptr, nullptr);
-  glfwSetWindowUserPointer(m_window, this);
-  glfwSetFramebufferSizeCallback(m_window, resizecallback);
-}
 void VulkanContext::initVulkan(bool validationLayersEnabled,
                                std::vector<const char *> validationLayers) {
   m_validationLayersEnabled = validationLayersEnabled;
@@ -174,12 +162,9 @@ void VulkanContext::initVulkan(bool validationLayersEnabled,
   }
   setupDebugMessenger(validationLayersEnabled);
 
-  createSurface();
-}
-
-void VulkanContext::createSurface() {
-  if (glfwCreateWindowSurface(m_instance, m_window, nullptr, &m_surface) !=
-      VK_SUCCESS) {
+  if (glfwCreateWindowSurface(getInstance(),
+                              Core::Application::Get().getWindow()->getHandle(),
+                              nullptr, &m_surface) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface!");
   }
 }
@@ -336,8 +321,6 @@ void VulkanContext::shutdown() {
   }
 
   vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
-
-  glfwDestroyWindow(m_window);
 
   vkDestroyDevice(m_device, nullptr);
 

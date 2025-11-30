@@ -4,8 +4,8 @@
 #include "Swapchain/Swapchain.h"
 
 
-#define VERT_SHADER_PATH "../src/Shaders/vert.spv"
-#define FRAG_SHADER_PATH "../src/Shaders/frag.spv"
+#define VERT_SHADER_PATH "../App/Shaders/vert.spv"
+#define FRAG_SHADER_PATH "../App/Shaders/frag.spv"
 
 class Pipeline {
 public:
