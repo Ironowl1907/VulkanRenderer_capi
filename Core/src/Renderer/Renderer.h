@@ -2,13 +2,12 @@
 
 #include "BufferManager/BufferManager.h"
 #include "Commands/CommandManager.h"
-#include "Common/Vertex.h"
-#include "Core/Window.h"
 #include "DescriptorManager/DescriptorManager.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
 #include "Swapchain/Swapchain.h"
 #include "Texture/Texture.h"
+#include "VulkanSyncObjects/VulkanSyncObjects.h"
 #include "vulkan/vulkan_core.h"
 
 #define GLFW_INCLUDE_VULKAN
@@ -31,7 +30,6 @@ private:
   void createIndexBuffer();
   void createUniformBuffers();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-  void createSyncObjects();
   void updateUniformBuffer(uint32_t currentImage);
   void drawFrame();
   void initVulkan();
@@ -64,10 +62,7 @@ private:
   DescriptorManager m_descriptorManager;
   std::vector<VkDescriptorSet> m_descriptorSets;
 
-  std::vector<VkSemaphore> submitSemaphores;
-  std::vector<VkSemaphore> adquiredSemaphore;
-  std::vector<VkFence> frameFences;
-  uint32_t inFlightCurrentFrame = 0;
+  VulkanSyncManager m_syncManager;
 
   bool framebufferResized = false;
 };

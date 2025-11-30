@@ -16,6 +16,7 @@ set(SOURCES
   src/Renderer/Commands/CommandManager.cpp
   src/Renderer/Texture/Texture.cpp
   src/Renderer/Swapchain/Swapchain.cpp
+  src/Renderer/VulkanSyncObjects/VulkanSyncObjects.cpp
 
 )
 
