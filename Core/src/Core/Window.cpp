@@ -33,11 +33,9 @@ void Window::destroy() {
 void Window::update() { glfwPollEvents(); }
 
 glm::vec2 Window::getFramebufferSize() {
-  // int width, height;
-  // glfwGetFramebufferSize(m_Handle, &width, &height);
-  // return {width, height};
-  // TODO:
-  return {0, 0};
+  int width, height;
+  glfwGetFramebufferSize(m_Handle, &width, &height);
+  return {width, height};
 }
 
 bool Window::shouldClose() const {

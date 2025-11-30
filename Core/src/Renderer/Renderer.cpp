@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Common/Images/CreateImage.h"
 #include "Common/UniformBufferObject.h"
+#include "Core/Application.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
 
@@ -17,9 +18,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
-
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -57,8 +55,8 @@ void Renderer::framebufferResizeCallback(GLFWwindow *window, int width,
 
 void Renderer::initVulkan() {
   ApplicationInfo appInfo;
-  appInfo.width = WIDTH;
-  appInfo.height = HEIGHT;
+  appInfo.width = Core::Application::Get().getWindow()->getFramebufferSize().x;
+  appInfo.height = Core::Application::Get().getWindow()->getFramebufferSize().y;
   appInfo.validationLayersEnabled = enableValidationLayers;
   appInfo.validationLayers = validationLayers;
 
