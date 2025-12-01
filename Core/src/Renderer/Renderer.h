@@ -25,9 +25,10 @@ public:
   void update();
   void cleanup();
 
-private:
   static void framebufferResizeCallback(GLFWwindow *window, int width,
                                         int height);
+
+private:
   void createVertexBuffer();
   void createIndexBuffer();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);

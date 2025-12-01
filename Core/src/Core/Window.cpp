@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "Core/Events/WindowEvents.h"
 
 #include <GLFW/glfw3.h>
 #include <assert.h>
@@ -19,8 +20,18 @@ void Window::create() {
   m_Handle = glfwCreateWindow(m_specification.Width, m_specification.Height,
                               m_specification.Title.c_str(), nullptr, nullptr);
   glfwSetWindowUserPointer(m_Handle, this);
-  // TODO:
-  // glfwSetFramebufferSizeCallback(m_Handle, resizecallback);
+
+  glfwSetWindowCloseCallback(m_Handle, [](GLFWwindow *handle) {
+    Window &window = *((Window *)glfwGetWindowUserPointer(handle));
+    WindowClosedEvent event;
+    window.raiseEvent(event);
+  });
+  glfwSetWindowSizeCallback(
+      m_Handle, [](GLFWwindow *handle, int width, int height) {
+        Window &window = *((Window *)glfwGetWindowUserPointer(handle));
+        WindowResizeEvent event((uint32_t)width, (uint32_t)height);
+        window.raiseEvent(event);
+      });
 }
 
 void Window::destroy() {
@@ -41,6 +52,11 @@ glm::vec2 Window::getFramebufferSize() {
 bool Window::shouldClose() const {
   assert(m_Handle);
   return glfwWindowShouldClose(m_Handle);
+}
+
+void Window::raiseEvent(Event &event) {
+  if (m_specification.EventCallback)
+    m_specification.EventCallback(event);
 }
 
 } // namespace Core
