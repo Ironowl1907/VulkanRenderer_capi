@@ -109,7 +109,11 @@ void Renderer::initVulkan() {
                      m_swapchain.getSwapChainImages().size());
 }
 
-void Renderer::update() { drawFrame(); }
+void Renderer::update() {
+  uint32_t flightCurrentFrame = m_syncManager.getFlightFrameIndex();
+  updateUniformBuffer(flightCurrentFrame);
+  drawFrame(flightCurrentFrame);
+}
 
 void Renderer::cleanup() {
   vkDeviceWaitIdle(m_context.getDevice());
@@ -287,7 +291,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
   m_uniformBufferManager[currentImage].writeData(&ubo);
 }
 
-void Renderer::drawFrame() {
+void Renderer::drawFrame(uint32_t flightCurrentFrame) {
   VkFence frameFence = m_syncManager.getFrameFence();
   vkWaitForFences(m_context.getDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
   vkResetFences(m_context.getDevice(), 1, &frameFence);
@@ -309,11 +313,8 @@ void Renderer::drawFrame() {
     throw std::runtime_error("failed to acquire swap chain image!");
   }
 
-  uint32_t flightCurrentFrame = m_syncManager.getFlightFrameIndex();
   VkCommandBuffer commandBuffer =
       m_commandManager.getFrameCommandBuffer(flightCurrentFrame);
-
-  updateUniformBuffer(flightCurrentFrame);
 
   vkResetCommandBuffer(commandBuffer, 0);
   recordCommandBuffer(commandBuffer, swapChainImageIndex);

@@ -32,7 +32,7 @@ private:
   void createIndexBuffer();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void updateUniformBuffer(uint32_t currentImage);
-  void drawFrame();
+  void drawFrame(uint32_t flightCurrentFrame);
   void initVulkan();
 
 private:
