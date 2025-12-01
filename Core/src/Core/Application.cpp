@@ -49,8 +49,6 @@ void Application::Run() {
     // NOTE: rendering can be done elsewhere (eg. render thread)
     for (const std::unique_ptr<Layer> &layer : m_LayerStack)
       layer->OnRender();
-
-    m_Window->update();
   }
 }
 
