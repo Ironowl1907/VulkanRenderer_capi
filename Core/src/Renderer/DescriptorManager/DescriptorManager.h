@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BufferManager/UniformBufferManager.h"
 #include "Swapchain/Swapchain.h"
 #include "Texture/Texture.h"
 #include "vulkan/vulkan_core.h"
@@ -12,7 +13,7 @@ public:
 
   std::vector<VkDescriptorSet>
   allocateSets(std::vector<VkDescriptorSetLayout> layouts,
-               std::vector<VkBuffer> &uniformBuffers, Texture &texutre,
+               std::vector<UBOManager> &uniformBuffers, Texture &texutre,
                uint32_t framesInFlight);
 
   void update(std::vector<VkDescriptorSet> &sets,

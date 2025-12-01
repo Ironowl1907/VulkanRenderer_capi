@@ -1,10 +1,12 @@
 #include "Renderer.h"
+#include "BufferManager/UniformBufferManager.h"
 #include "Common/Images/CreateImage.h"
 #include "Common/UniformBufferObject.h"
 #include "Core/Application.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
 #include <iostream>
+#include <vector>
 
 #include "Common/Vertex.h"
 #include "Core/Window.h"
@@ -87,14 +89,22 @@ void Renderer::initVulkan() {
                              "../App/textures/mondongo.jpg");
   createVertexBuffer();
   createIndexBuffer();
-  createUniformBuffers();
+
+  m_uniformBufferManager.resize(MAX_FRAMES_IN_FLIGHT);
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    m_uniformBufferManager[i] =
+        UBOManager(&m_context, &m_bufferManager, sizeof(UniformBufferObject));
+  }
+
   m_descriptorManager.init(&m_context);
   m_descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
   std::vector<VkDescriptorSetLayout> layouts(
       MAX_FRAMES_IN_FLIGHT, m_pipeline.getDescriptionSetLayout());
   m_descriptorSets = m_descriptorManager.allocateSets(
-      layouts, uniformBuffers, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
+      layouts, m_uniformBufferManager, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
+
   m_commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
+
   m_syncManager.init(&m_context, MAX_FRAMES_IN_FLIGHT,
                      m_swapchain.getSwapChainImages().size());
 }
@@ -107,8 +117,7 @@ void Renderer::cleanup() {
   m_renderPass.shutdown();
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroyBuffer(m_context.getDevice(), uniformBuffers[i], nullptr);
-    vkFreeMemory(m_context.getDevice(), uniformBuffersMemory[i], nullptr);
+    m_uniformBufferManager[i].shutdown();
   }
 
   m_demoTexture.cleanup(&m_context);
@@ -187,24 +196,6 @@ void Renderer::createIndexBuffer() {
 
   vkDestroyBuffer(m_context.getDevice(), stagingBuffer, nullptr);
   vkFreeMemory(m_context.getDevice(), stagingBufferMemory, nullptr);
-}
-
-void Renderer::createUniformBuffers() {
-  VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-  uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-  uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    m_bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                 uniformBuffers[i], uniformBuffersMemory[i]);
-
-    vkMapMemory(m_context.getDevice(), uniformBuffersMemory[i], 0, bufferSize,
-                0, &uniformBuffersMapped[i]);
-  }
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
@@ -293,24 +284,21 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
                        0.1f, 10.0f);
   ubo.proj[1][1] *= -1;
 
-  memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+  m_uniformBufferManager[currentImage].writeData(&ubo);
 }
 
 void Renderer::drawFrame() {
-  // VkFence frameFence = frameFences[inFlightCurrentFrame];
   VkFence frameFence = m_syncManager.getFrameFence();
   vkWaitForFences(m_context.getDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
   vkResetFences(m_context.getDevice(), 1, &frameFence);
 
   uint32_t swapChainImageIndex;
-  // VkSemaphore acquireSemaphore = adquiredSemaphore[inFlightCurrentFrame];
   VkSemaphore acquireSemaphore = m_syncManager.getAcquireSemaphore();
 
   VkResult result = vkAcquireNextImageKHR(
       m_context.getDevice(), m_swapchain.getSwapChain(), UINT64_MAX,
       acquireSemaphore, VK_NULL_HANDLE, &swapChainImageIndex);
 
-  // VkSemaphore submitSemaphore = submitSemaphores[swapChainImageIndex];
   VkSemaphore submitSemaphore =
       m_syncManager.getSubmitSemaphore(swapChainImageIndex);
 

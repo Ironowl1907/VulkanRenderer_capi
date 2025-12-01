@@ -1,7 +1,9 @@
 #pragma once
 
 #include "BufferManager/BufferManager.h"
+#include "BufferManager/UniformBufferManager.h"
 #include "Commands/CommandManager.h"
+#include "Common/UniformBufferObject.h"
 #include "DescriptorManager/DescriptorManager.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
@@ -28,7 +30,6 @@ private:
                                         int height);
   void createVertexBuffer();
   void createIndexBuffer();
-  void createUniformBuffers();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
   void updateUniformBuffer(uint32_t currentImage);
   void drawFrame();
@@ -55,9 +56,7 @@ private:
   VkBuffer indexBuffer;
   VkDeviceMemory indexBufferMemory;
 
-  std::vector<VkBuffer> uniformBuffers;
-  std::vector<VkDeviceMemory> uniformBuffersMemory;
-  std::vector<void *> uniformBuffersMapped;
+  std::vector<UBOManager> m_uniformBufferManager;
 
   DescriptorManager m_descriptorManager;
   std::vector<VkDescriptorSet> m_descriptorSets;
