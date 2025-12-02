@@ -17,7 +17,12 @@ Application::Application(const ApplicationSpec &specification)
     : m_Specification(specification) {
   s_Application = this;
 
-  m_Window = std::make_unique<Window>(specification.Window);
+  m_Specification.Window.EventCallback = [this](Event &event) {
+    RaiseEvent(event);
+  };
+
+  m_Window = std::make_unique<Window>(m_Specification.Window);
+
   m_Window->create();
 }
 
@@ -38,19 +43,20 @@ void Application::Run() {
 
     m_Window->update();
 
-    if (m_Window->shouldClose()) {
-      Stop();
-      break;
-    }
-
     for (const std::unique_ptr<Layer> &layer : m_LayerStack)
       layer->OnUpdate(0);
 
     // NOTE: rendering can be done elsewhere (eg. render thread)
     for (const std::unique_ptr<Layer> &layer : m_LayerStack)
       layer->OnRender();
+  }
+}
 
-    m_Window->update();
+void Application::RaiseEvent(Event &event) {
+  for (int i = m_LayerStack.size() - 1; i >= 0; i--) {
+    m_LayerStack[i]->OnEvent(event);
+    if (event.Handled)
+      break;
   }
 }
 

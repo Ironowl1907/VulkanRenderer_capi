@@ -4,6 +4,7 @@
 #include "Core/Application.h"
 #include <algorithm>
 #include <array>
+#include <iostream>
 #include <limits>
 #include <stdexcept>
 
@@ -153,11 +154,14 @@ void Swapchain::cleanupSwapChain() {
 
 void Swapchain::recreateSwapChain(VkRenderPass &renderPass) {
   int width = 0, height = 0;
-  glfwGetFramebufferSize(Core::Application::Get().getWindow()->getHandle(),
-                         &width, &height);
+  glm::vec2 size = Core::Application::Get().getFramebufferSize();
+  width = size.x;
+  height = size.y;
   while (width == 0 || height == 0) {
-    glfwGetFramebufferSize(Core::Application::Get().getWindow()->getHandle(),
-                           &width, &height);
+    glm::vec2 size = Core::Application::Get().getFramebufferSize();
+    width = size.x;
+    height = size.y;
+
     glfwWaitEvents();
   }
 

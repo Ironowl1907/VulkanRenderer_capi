@@ -1,8 +1,16 @@
 #include "Renderer.h"
+#include "BufferManager/UniformBufferManager.h"
 #include "Common/Images/CreateImage.h"
 #include "Common/UniformBufferObject.h"
+#include "Core/Application.h"
 #include <GLFW/glfw3.h>
+#include <cstdint>
 #include <iostream>
+#include <vector>
+
+#include "Common/Vertex.h"
+#include "Core/Window.h"
+#include "Meshes/Mesh.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -18,9 +26,6 @@
 #include <cstring>
 #include <stdexcept>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 #ifdef NDEBUG
@@ -29,34 +34,25 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+void Renderer::onFrameBufferResize() { framebufferResized = true; }
 
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
+void Renderer::init(const std::string &vertShaderPath,
+                    const std::string &fragShaderPath) {
+  m_vertShaderPath = vertShaderPath;
+  m_fragShaderPath = fragShaderPath;
 
-const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
-
-void Renderer::framebufferResizeCallback(GLFWwindow *window, int width,
-                                         int height) {
-  auto app = reinterpret_cast<Renderer *>(glfwGetWindowUserPointer(window));
-  app->framebufferResized = true;
+  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
+  initVulkan();
 }
 
 void Renderer::initVulkan() {
   ApplicationInfo appInfo;
-  appInfo.width = WIDTH;
-  appInfo.height = HEIGHT;
+  appInfo.width = Core::Application::Get().getWindow()->getFramebufferSize().x;
+  appInfo.height = Core::Application::Get().getWindow()->getFramebufferSize().y;
   appInfo.validationLayersEnabled = enableValidationLayers;
   appInfo.validationLayers = validationLayers;
 
-  m_context.init(appInfo, framebufferResizeCallback);
-
+  m_context.init(appInfo);
 
   m_swapchain.init(&m_context);
   m_swapchain.createSwapChain();
@@ -67,7 +63,7 @@ void Renderer::initVulkan() {
 
   m_swapchain.createFramebuffers(m_renderPass.getRenderPass());
 
-  m_pipeline.init(&m_context, m_renderPass);
+  m_pipeline.init(&m_context, m_renderPass, m_vertShaderPath, m_fragShaderPath);
 
   m_commandManager.init(&m_context);
   m_commandManager.createCommandPools();
@@ -79,18 +75,31 @@ void Renderer::initVulkan() {
                              "../App/textures/mondongo.jpg");
   createVertexBuffer();
   createIndexBuffer();
-  createUniformBuffers();
+
+  m_uniformBufferManager.resize(MAX_FRAMES_IN_FLIGHT);
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    m_uniformBufferManager[i] =
+        UBOManager(&m_context, &m_bufferManager, sizeof(UniformBufferObject));
+  }
+
   m_descriptorManager.init(&m_context);
   m_descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
   std::vector<VkDescriptorSetLayout> layouts(
       MAX_FRAMES_IN_FLIGHT, m_pipeline.getDescriptionSetLayout());
   m_descriptorSets = m_descriptorManager.allocateSets(
-      layouts, uniformBuffers, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
+      layouts, m_uniformBufferManager, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
+
   m_commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
-  createSyncObjects();
+
+  m_syncManager.init(&m_context, MAX_FRAMES_IN_FLIGHT,
+                     m_swapchain.getSwapChainImages().size());
 }
 
-void Renderer::update() { drawFrame(); }
+void Renderer::update() {
+  uint32_t flightCurrentFrame = m_syncManager.getFlightFrameIndex();
+  updateUniformBuffer(flightCurrentFrame);
+  drawFrame(flightCurrentFrame);
+}
 
 void Renderer::cleanup() {
   vkDeviceWaitIdle(m_context.getDevice());
@@ -98,8 +107,7 @@ void Renderer::cleanup() {
   m_renderPass.shutdown();
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroyBuffer(m_context.getDevice(), uniformBuffers[i], nullptr);
-    vkFreeMemory(m_context.getDevice(), uniformBuffersMemory[i], nullptr);
+    m_uniformBufferManager[i].shutdown();
   }
 
   m_demoTexture.cleanup(&m_context);
@@ -115,14 +123,7 @@ void Renderer::cleanup() {
   vkDestroyBuffer(m_context.getDevice(), vertexBuffer, nullptr);
   vkFreeMemory(m_context.getDevice(), vertexBufferMemory, nullptr);
 
-  for (size_t i = 0; i < m_swapchain.getSwapChainImages().size(); i++) {
-    vkDestroySemaphore(m_context.getDevice(), submitSemaphores[i], nullptr);
-    vkDestroySemaphore(m_context.getDevice(), adquiredSemaphore[i], nullptr);
-  }
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroyFence(m_context.getDevice(), frameFences[i], nullptr);
-  }
+  m_syncManager.cleanup();
 
   m_commandManager.shutdown();
 
@@ -134,6 +135,9 @@ void Renderer::cleanup() {
 }
 
 void Renderer::createVertexBuffer() {
+  auto vertices = m_dragonMesh.getVertices();
+
+  // Load to GPU
   VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
   VkBuffer stagingBuffer;
@@ -161,6 +165,7 @@ void Renderer::createVertexBuffer() {
 }
 
 void Renderer::createIndexBuffer() {
+  auto indices = m_dragonMesh.getIndices();
   VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
   VkBuffer stagingBuffer;
@@ -185,24 +190,6 @@ void Renderer::createIndexBuffer() {
 
   vkDestroyBuffer(m_context.getDevice(), stagingBuffer, nullptr);
   vkFreeMemory(m_context.getDevice(), stagingBufferMemory, nullptr);
-}
-
-void Renderer::createUniformBuffers() {
-  VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-  uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-  uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-  uniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    m_bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                 uniformBuffers[i], uniformBuffersMemory[i]);
-
-    vkMapMemory(m_context.getDevice(), uniformBuffersMemory[i], 0, bufferSize,
-                0, &uniformBuffersMapped[i]);
-  }
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
@@ -253,50 +240,21 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-  vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+  vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          m_pipeline.getPipelineLayout(), 0, 1,
-                          &m_descriptorSets[inFlightCurrentFrame], 0, nullptr);
+  vkCmdBindDescriptorSets(
+      commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+      m_pipeline.getPipelineLayout(), 0, 1,
+      &m_descriptorSets[m_syncManager.getFlightFrameIndex()], 0, nullptr);
 
-  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
-                   0, 0);
+  vkCmdDrawIndexed(commandBuffer,
+                   static_cast<uint32_t>(m_dragonMesh.getIndices().size()), 1,
+                   0, 0, 0);
 
   vkCmdEndRenderPass(commandBuffer);
 
   if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
     throw std::runtime_error("failed to record command buffer!");
-  }
-}
-
-void Renderer::createSyncObjects() {
-  submitSemaphores.resize(m_swapchain.getSwapChainImages().size());
-  adquiredSemaphore.resize(m_swapchain.getSwapChainImages().size());
-  frameFences.resize(MAX_FRAMES_IN_FLIGHT);
-
-  VkSemaphoreCreateInfo semaphoreInfo{};
-  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-  VkFenceCreateInfo fenceInfo{};
-  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    if (vkCreateFence(m_context.getDevice(), &fenceInfo, nullptr,
-                      &frameFences[i]) != VK_SUCCESS) {
-      throw std::runtime_error(
-          "failed to create synchronization objects for a frame!");
-    }
-  }
-
-  for (int i = 0; i < m_swapchain.getSwapChainImages().size(); i++) {
-    if (vkCreateSemaphore(m_context.getDevice(), &semaphoreInfo, nullptr,
-                          &submitSemaphores[i]) != VK_SUCCESS ||
-        vkCreateSemaphore(m_context.getDevice(), &semaphoreInfo, nullptr,
-                          &adquiredSemaphore[i]) != VK_SUCCESS) {
-      throw std::runtime_error(
-          "failed to create synchronization objects for a frame!");
-    }
   }
 }
 
@@ -310,7 +268,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
 
   UniformBufferObject ubo{};
   ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                          glm::vec3(0.0f, 0.0f, 1.0f));
+                          glm::vec3(1.0f, 0.0f, 0.0f));
   ubo.view =
       glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                   glm::vec3(0.0f, 0.0f, 1.0f));
@@ -321,22 +279,23 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
                        0.1f, 10.0f);
   ubo.proj[1][1] *= -1;
 
-  memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+  m_uniformBufferManager[currentImage].writeData(&ubo);
 }
 
-void Renderer::drawFrame() {
-  VkFence frameFence = frameFences[inFlightCurrentFrame];
+void Renderer::drawFrame(uint32_t flightCurrentFrame) {
+  VkFence frameFence = m_syncManager.getFrameFence();
   vkWaitForFences(m_context.getDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
   vkResetFences(m_context.getDevice(), 1, &frameFence);
 
   uint32_t swapChainImageIndex;
-  VkSemaphore acquireSemaphore = adquiredSemaphore[inFlightCurrentFrame];
+  VkSemaphore acquireSemaphore = m_syncManager.getAcquireSemaphore();
 
   VkResult result = vkAcquireNextImageKHR(
       m_context.getDevice(), m_swapchain.getSwapChain(), UINT64_MAX,
       acquireSemaphore, VK_NULL_HANDLE, &swapChainImageIndex);
 
-  VkSemaphore submitSemaphore = submitSemaphores[swapChainImageIndex];
+  VkSemaphore submitSemaphore =
+      m_syncManager.getSubmitSemaphore(swapChainImageIndex);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     m_swapchain.recreateSwapChain(m_renderPass.getRenderPass());
@@ -346,9 +305,7 @@ void Renderer::drawFrame() {
   }
 
   VkCommandBuffer commandBuffer =
-      m_commandManager.getFrameCommandBuffer(inFlightCurrentFrame);
-
-  updateUniformBuffer(inFlightCurrentFrame);
+      m_commandManager.getFrameCommandBuffer(flightCurrentFrame);
 
   vkResetCommandBuffer(commandBuffer, 0);
   recordCommandBuffer(commandBuffer, swapChainImageIndex);
@@ -397,5 +354,5 @@ void Renderer::drawFrame() {
     throw std::runtime_error("failed to present swap chain image!");
   }
 
-  inFlightCurrentFrame = (inFlightCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+  m_syncManager.nextFlightFrame();
 }

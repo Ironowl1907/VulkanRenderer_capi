@@ -1,5 +1,7 @@
 #include "DescriptorManager.h"
 #include "Common/UniformBufferObject.h"
+#include "Common/UniformBufferObject.h"
+#include "Renderer/BufferManager/UniformBufferManager.h"
 #include "Texture/Texture.h"
 #include <array>
 #include <stdexcept>
@@ -31,7 +33,7 @@ void DescriptorManager::createPool(uint32_t framesInFlight) {
 // TODO: Hack Implementation
 std::vector<VkDescriptorSet>
 DescriptorManager::allocateSets(std::vector<VkDescriptorSetLayout> layouts,
-                                std::vector<VkBuffer> &uniformBuffers,
+                                std::vector<UBOManager> &uniformBuffers,
                                 Texture &texutre, uint32_t framesInFlight) {
 
   std::vector<VkDescriptorSet> descriptorSets;
@@ -50,7 +52,7 @@ DescriptorManager::allocateSets(std::vector<VkDescriptorSetLayout> layouts,
 
   for (size_t i = 0; i < framesInFlight; i++) {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffers[i];
+    bufferInfo.buffer = uniformBuffers[i].getBuffer();
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 

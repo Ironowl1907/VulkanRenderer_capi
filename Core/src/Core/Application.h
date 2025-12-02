@@ -27,8 +27,9 @@ public:
     m_LayerStack.push_back(std::make_unique<TLayer>());
   }
 
-  glm::vec2 getFramebufferSize() const;
+  void RaiseEvent(Event &event);
 
+  glm::vec2 getFramebufferSize() const;
   static Application &Get();
   static float GetTime();
   std::shared_ptr<Window> getWindow();

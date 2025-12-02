@@ -16,7 +16,10 @@ set(SOURCES
   src/Renderer/Commands/CommandManager.cpp
   src/Renderer/Texture/Texture.cpp
   src/Renderer/Swapchain/Swapchain.cpp
-
+  src/Renderer/VulkanSyncObjects/VulkanSyncObjects.cpp
+  src/Renderer/BufferManager/UniformBufferManager.cpp
+  src/Scene/Camera/Camera.cpp
+  src/Renderer/Meshes/Mesh.cpp
 )
 
 set(VULKAN_SDK_PATH "/home/ironowl/vulkan_sdk/1.4.328.1/x86_64/" CACHE PATH "Path to Vulkan SDK")

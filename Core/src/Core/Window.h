@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Core/Events/Event.h"
 #include "vulkan/vulkan_core.h"
 #include <GLFW/glfw3.h>
 
@@ -15,6 +16,9 @@ struct WindowSpec {
   uint32_t Height = 720;
   bool IsResizeable = true;
   bool VSync = true;
+
+  using EventCallbackFn = std::function<void(Event &)>;
+  EventCallbackFn EventCallback;
 };
 
 class Window {
@@ -29,9 +33,9 @@ public:
 
   glm::vec2 getFramebufferSize();
 
-  bool shouldClose() const;
-
   GLFWwindow *getHandle() const { return m_Handle; }
+
+  void raiseEvent(Event &event);
 
 private:
   WindowSpec m_specification;

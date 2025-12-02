@@ -1,4 +1,5 @@
 build/
 .cache/
+vendor/
 compile_commands.json
 *.spv
