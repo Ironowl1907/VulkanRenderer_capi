@@ -5,6 +5,7 @@
 #include "Commands/CommandManager.h"
 #include "Common/UniformBufferObject.h"
 #include "DescriptorManager/DescriptorManager.h"
+#include "Meshes/Mesh.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
 #include "Swapchain/Swapchain.h"
@@ -49,6 +50,8 @@ private:
   CommandManager m_commandManager;
 
   Texture m_demoTexture;
+
+  Mesh m_dragonMesh;
 
   VkBuffer vertexBuffer;
   VkDeviceMemory vertexBufferMemory;

@@ -10,6 +10,7 @@
 
 #include "Common/Vertex.h"
 #include "Core/Window.h"
+#include "Meshes/Mesh.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -33,25 +34,14 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-const std::vector<Vertex> vertices = {
-    {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-    {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
-
-const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
-
 void Renderer::onFrameBufferResize() { framebufferResized = true; }
 
 void Renderer::init(const std::string &vertShaderPath,
                     const std::string &fragShaderPath) {
   m_vertShaderPath = vertShaderPath;
   m_fragShaderPath = fragShaderPath;
+
+  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
   initVulkan();
 }
 
@@ -145,6 +135,9 @@ void Renderer::cleanup() {
 }
 
 void Renderer::createVertexBuffer() {
+  auto vertices = m_dragonMesh.getVertices();
+
+  // Load to GPU
   VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
   VkBuffer stagingBuffer;
@@ -172,6 +165,7 @@ void Renderer::createVertexBuffer() {
 }
 
 void Renderer::createIndexBuffer() {
+  auto indices = m_dragonMesh.getIndices();
   VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
   VkBuffer stagingBuffer;
@@ -246,15 +240,16 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-  vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+  vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
   vkCmdBindDescriptorSets(
       commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
       m_pipeline.getPipelineLayout(), 0, 1,
       &m_descriptorSets[m_syncManager.getFlightFrameIndex()], 0, nullptr);
 
-  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0,
-                   0, 0);
+  vkCmdDrawIndexed(commandBuffer,
+                   static_cast<uint32_t>(m_dragonMesh.getIndices().size()), 1,
+                   0, 0, 0);
 
   vkCmdEndRenderPass(commandBuffer);
 
@@ -273,7 +268,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
 
   UniformBufferObject ubo{};
   ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                          glm::vec3(0.0f, 0.0f, 1.0f));
+                          glm::vec3(1.0f, 0.0f, 0.0f));
   ubo.view =
       glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                   glm::vec3(0.0f, 0.0f, 1.0f));
