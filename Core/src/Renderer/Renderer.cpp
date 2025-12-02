@@ -46,17 +46,13 @@ const std::vector<Vertex> vertices = {
 
 const std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
 
+void Renderer::onFrameBufferResize() { framebufferResized = true; }
+
 void Renderer::init(const std::string &vertShaderPath,
                     const std::string &fragShaderPath) {
   m_vertShaderPath = vertShaderPath;
   m_fragShaderPath = fragShaderPath;
   initVulkan();
-}
-
-void Renderer::framebufferResizeCallback(GLFWwindow *window, int width,
-                                         int height) {
-  auto app = reinterpret_cast<Renderer *>(glfwGetWindowUserPointer(window));
-  app->framebufferResized = true;
 }
 
 void Renderer::initVulkan() {
@@ -66,7 +62,7 @@ void Renderer::initVulkan() {
   appInfo.validationLayersEnabled = enableValidationLayers;
   appInfo.validationLayers = validationLayers;
 
-  m_context.init(appInfo, framebufferResizeCallback);
+  m_context.init(appInfo);
 
   m_swapchain.init(&m_context);
   m_swapchain.createSwapChain();

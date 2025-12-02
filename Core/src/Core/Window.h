@@ -33,8 +33,6 @@ public:
 
   glm::vec2 getFramebufferSize();
 
-  bool shouldClose() const;
-
   GLFWwindow *getHandle() const { return m_Handle; }
 
   void raiseEvent(Event &event);

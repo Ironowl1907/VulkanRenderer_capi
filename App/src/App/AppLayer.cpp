@@ -20,7 +20,6 @@ void AppLayer::OnUpdate(float ts) {}
 void AppLayer::OnRender() { m_renderer.update(); }
 
 void AppLayer::OnEvent(Event &event) {
-  std::cout << event.ToString() << '\n';
   EventDispatcher dispatcher(event);
   dispatcher.Dispatch<Core::WindowClosedEvent>(
       [this](Core::WindowClosedEvent &e) { return onWindowClose(e); });
@@ -30,12 +29,11 @@ void AppLayer::OnEvent(Event &event) {
 }
 
 bool AppLayer::onWindownResize(Core::WindowResizeEvent &e) {
-  std::cout << "WindowResize: " << e.ToString() << '\n';
-	m_renderer.framebufferResizeCallback(e.)
+  m_renderer.onFrameBufferResize();
   return false;
 }
 bool AppLayer::onWindowClose(Event &e) {
-	
-  std::cout << "WindowClose: " << e.ToString() << '\n';
-  return false;
+  Core::Application::Get().Stop();
+
+  return true;
 }

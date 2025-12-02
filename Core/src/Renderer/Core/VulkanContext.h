@@ -36,8 +36,7 @@ struct QueueFamilyIndices {
 };
 class VulkanContext {
 public:
-  void init(ApplicationInfo info,
-            void (*resizeCallback)(GLFWwindow *window, int width, int height));
+  void init(ApplicationInfo info);
   void shutdown();
 
   const VkInstance &getInstance() const { return m_instance; }

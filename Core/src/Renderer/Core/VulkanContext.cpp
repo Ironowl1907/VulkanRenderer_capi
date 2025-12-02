@@ -61,9 +61,7 @@ bool VulkanContext::checkValidationLayerSupport(
   return true;
 }
 
-void VulkanContext::init(ApplicationInfo info,
-                         void (*resizeCallback)(GLFWwindow *window, int width,
-                                                int height)) {
+void VulkanContext::init(ApplicationInfo info) {
   initVulkan(info.validationLayersEnabled, info.validationLayers);
 
   pickPhysicalDevice();

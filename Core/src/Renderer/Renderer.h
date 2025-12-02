@@ -25,8 +25,7 @@ public:
   void update();
   void cleanup();
 
-  static void framebufferResizeCallback(GLFWwindow *window, int width,
-                                        int height);
+  void onFrameBufferResize();
 
 private:
   void createVertexBuffer();

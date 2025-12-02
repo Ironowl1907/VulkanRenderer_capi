@@ -17,7 +17,6 @@ Application::Application(const ApplicationSpec &specification)
     : m_Specification(specification) {
   s_Application = this;
 
-  std::cout << "set" << '\n';
   m_Specification.Window.EventCallback = [this](Event &event) {
     RaiseEvent(event);
   };
@@ -43,11 +42,6 @@ void Application::Run() {
   while (m_Running) {
 
     m_Window->update();
-
-    if (m_Window->shouldClose()) {
-      Stop();
-      break;
-    }
 
     for (const std::unique_ptr<Layer> &layer : m_LayerStack)
       layer->OnUpdate(0);

@@ -1,4 +1,5 @@
 #include "Window.h"
+#include "Core/Application.h"
 #include "Core/Events/WindowEvents.h"
 
 #include <GLFW/glfw3.h>
@@ -19,16 +20,19 @@ void Window::create() {
 
   m_Handle = glfwCreateWindow(m_specification.Width, m_specification.Height,
                               m_specification.Title.c_str(), nullptr, nullptr);
-  glfwSetWindowUserPointer(m_Handle, this);
+  std::cout << "setting userPointer to: " << &Application::Get() << '\n';
+  glfwSetWindowUserPointer(m_Handle, &Application::Get());
 
   glfwSetWindowCloseCallback(m_Handle, [](GLFWwindow *handle) {
-    Window &window = *((Window *)glfwGetWindowUserPointer(handle));
+    Window &window =
+        *((Application *)glfwGetWindowUserPointer(handle))->getWindow();
     WindowClosedEvent event;
     window.raiseEvent(event);
   });
   glfwSetWindowSizeCallback(
       m_Handle, [](GLFWwindow *handle, int width, int height) {
-        Window &window = *((Window *)glfwGetWindowUserPointer(handle));
+        Window &window =
+            *((Application *)glfwGetWindowUserPointer(handle))->getWindow();
         WindowResizeEvent event((uint32_t)width, (uint32_t)height);
         window.raiseEvent(event);
       });
@@ -47,11 +51,6 @@ glm::vec2 Window::getFramebufferSize() {
   int width, height;
   glfwGetFramebufferSize(m_Handle, &width, &height);
   return {width, height};
-}
-
-bool Window::shouldClose() const {
-  assert(m_Handle);
-  return glfwWindowShouldClose(m_Handle);
 }
 
 void Window::raiseEvent(Event &event) {
