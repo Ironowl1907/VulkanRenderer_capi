@@ -12,6 +12,7 @@
 #include "Common/Vertex.h"
 #include "Core/Window.h"
 #include "Meshes/Mesh.h"
+#include "Scene/Camera/Camera.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -42,13 +43,7 @@ void Renderer::init(const std::string &vertShaderPath,
   m_vertShaderPath = vertShaderPath;
   m_fragShaderPath = fragShaderPath;
 
-  m_camera.init(45.0f,
-                Core::Application::Get().getFramebufferSize().x /
-                    Core::Application::Get().getFramebufferSize().y,
-                0.1f, 10.0f);
-  m_camera.move({0.0f, 0.0f, 3.0f});
-
-  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
+  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/sponza/sponza.obj");
   initVulkan();
 }
 
@@ -102,9 +97,9 @@ void Renderer::initVulkan() {
                      m_swapchain.getSwapChainImages().size());
 }
 
-void Renderer::update() {
+void Renderer::update(Camera camera) {
   uint32_t flightCurrentFrame = m_syncManager.getFlightFrameIndex();
-  updateUniformBuffer(flightCurrentFrame);
+  updateUniformBuffer(flightCurrentFrame, camera);
   drawFrame(flightCurrentFrame);
 }
 
@@ -265,21 +260,15 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   }
 }
 
-void Renderer::updateUniformBuffer(uint32_t currentImage) {
-  static auto startTime = std::chrono::high_resolution_clock::now();
-
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float time = std::chrono::duration<float, std::chrono::seconds::period>(
-                   currentTime - startTime)
-                   .count();
+void Renderer::updateUniformBuffer(uint32_t currentImage, Camera camera) {
 
   UniformBufferObject ubo{};
 
   ubo.model = glm::mat4(1.0f);
   ubo.view = glm::mat4(1.0f);
   ubo.proj = glm::mat4(1.0f);
-  ubo.view = m_camera.getViewMatrix();
-  ubo.proj = m_camera.getProjectionMatrix();
+  ubo.view = camera.getViewMatrix();
+  ubo.proj = camera.getProjectionMatrix();
 
   m_uniformBufferManager[currentImage].writeData(&ubo);
 }

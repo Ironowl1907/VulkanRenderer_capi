@@ -10,6 +10,7 @@ public:
 
   void setPosition(const glm::vec3 &pos);
   void setRotation(const glm::vec3 &rot); // pitch/yaw/roll in radians
+  void setAspectRatio(const float aspect); 
 
   void move(const glm::vec3 &delta);
   void rotate(const glm::vec3 &delta);
@@ -18,6 +19,7 @@ public:
   const glm::mat4 &getProjectionMatrix();
 
   const glm::vec3 &getPosition();
+  const glm::vec3 &getRotation();
 
 private:
   void updateView();

@@ -6,6 +6,7 @@
 #include "Core/Events/WindowEvents.h"
 #include "Core/Layer.h"
 #include "Renderer.h"
+#include "Scene/Camera/Camera.h"
 
 class AppLayer : public Core::Layer {
 public:
@@ -27,4 +28,5 @@ private:
   uint32_t m_VertexBuffer = 0;
 
   Renderer m_renderer;
+  Camera m_camera;
 };

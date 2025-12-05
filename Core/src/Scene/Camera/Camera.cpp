@@ -18,6 +18,8 @@ void Camera::setPosition(const glm::vec3 &pos) {
   m_viewDirty = true;
 }
 
+void Camera::setAspectRatio(const float aspect) { m_aspect = aspect; }
+
 void Camera::setRotation(const glm::vec3 &rot) {
   m_rotation = rot;
   m_viewDirty = true;
@@ -62,3 +64,5 @@ const glm::mat4 &Camera::getProjectionMatrix() {
 }
 
 const glm::vec3 &Camera::getPosition() { return m_position; }
+
+const glm::vec3 &Camera::getRotation() { return m_rotation; }
