@@ -5,7 +5,8 @@
 
 class Camera {
 public:
-  Camera(float fov, float aspect, float nearPlane, float farPlane);
+  Camera();
+  void init(float fov, float aspect, float nearPlane, float farPlane);
 
   void setPosition(const glm::vec3 &pos);
   void setRotation(const glm::vec3 &rot); // pitch/yaw/roll in radians
@@ -15,6 +16,8 @@ public:
 
   const glm::mat4 &getViewMatrix();
   const glm::mat4 &getProjectionMatrix();
+
+  const glm::vec3 &getPosition();
 
 private:
   void updateView();

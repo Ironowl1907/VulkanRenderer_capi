@@ -8,6 +8,7 @@
 #include "Meshes/Mesh.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
+#include "Scene/Camera/Camera.h"
 #include "Swapchain/Swapchain.h"
 #include "Texture/Texture.h"
 #include "VulkanSyncObjects/VulkanSyncObjects.h"
@@ -67,4 +68,6 @@ private:
   VulkanSyncManager m_syncManager;
 
   bool framebufferResized = false;
+
+  Camera m_camera;
 };

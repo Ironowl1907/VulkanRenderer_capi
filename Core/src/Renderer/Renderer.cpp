@@ -5,6 +5,7 @@
 #include "Core/Application.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
+#include <glm/fwd.hpp>
 #include <iostream>
 #include <vector>
 
@@ -40,6 +41,12 @@ void Renderer::init(const std::string &vertShaderPath,
                     const std::string &fragShaderPath) {
   m_vertShaderPath = vertShaderPath;
   m_fragShaderPath = fragShaderPath;
+
+  m_camera.init(45.0f,
+                Core::Application::Get().getFramebufferSize().x /
+                    Core::Application::Get().getFramebufferSize().y,
+                0.1f, 10.0f);
+  m_camera.move({0.0f, 0.0f, 3.0f});
 
   m_dragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
   initVulkan();
@@ -267,17 +274,12 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
                    .count();
 
   UniformBufferObject ubo{};
-  ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                          glm::vec3(1.0f, 0.0f, 0.0f));
-  ubo.view =
-      glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                  glm::vec3(0.0f, 0.0f, 1.0f));
-  ubo.proj =
-      glm::perspective(glm::radians(45.0f),
-                       m_swapchain.getSwapChainExtent().width /
-                           (float)m_swapchain.getSwapChainExtent().height,
-                       0.1f, 10.0f);
-  ubo.proj[1][1] *= -1;
+
+  ubo.model = glm::mat4(1.0f);
+  ubo.view = glm::mat4(1.0f);
+  ubo.proj = glm::mat4(1.0f);
+  ubo.view = m_camera.getViewMatrix();
+  ubo.proj = m_camera.getProjectionMatrix();
 
   m_uniformBufferManager[currentImage].writeData(&ubo);
 }
