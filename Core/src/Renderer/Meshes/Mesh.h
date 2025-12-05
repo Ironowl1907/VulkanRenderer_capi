@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Common/Vertex.h"
-#include <string>
 #include <vector>
 class Mesh {
 public:
@@ -18,8 +17,7 @@ public:
   const std::vector<Vertex> &getVertices() { return m_vertices; }
   const std::vector<uint32_t> &getIndices() { return m_indices; }
 
-
-	void loadFromFile(const char * path);
+  void loadFromFile(const char *path);
 
 private:
 private:

@@ -5,12 +5,14 @@
 #include "Core/Application.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
+#include <glm/fwd.hpp>
 #include <iostream>
 #include <vector>
 
 #include "Common/Vertex.h"
 #include "Core/Window.h"
 #include "Meshes/Mesh.h"
+#include "Scene/Camera/Camera.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -41,7 +43,7 @@ void Renderer::init(const std::string &vertShaderPath,
   m_vertShaderPath = vertShaderPath;
   m_fragShaderPath = fragShaderPath;
 
-  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
+  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/sponza/sponza.obj");
   initVulkan();
 }
 
@@ -95,9 +97,9 @@ void Renderer::initVulkan() {
                      m_swapchain.getSwapChainImages().size());
 }
 
-void Renderer::update() {
+void Renderer::update(Camera camera) {
   uint32_t flightCurrentFrame = m_syncManager.getFlightFrameIndex();
-  updateUniformBuffer(flightCurrentFrame);
+  updateUniformBuffer(flightCurrentFrame, camera);
   drawFrame(flightCurrentFrame);
 }
 
@@ -258,26 +260,15 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   }
 }
 
-void Renderer::updateUniformBuffer(uint32_t currentImage) {
-  static auto startTime = std::chrono::high_resolution_clock::now();
-
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float time = std::chrono::duration<float, std::chrono::seconds::period>(
-                   currentTime - startTime)
-                   .count();
+void Renderer::updateUniformBuffer(uint32_t currentImage, Camera camera) {
 
   UniformBufferObject ubo{};
-  ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                          glm::vec3(1.0f, 0.0f, 0.0f));
-  ubo.view =
-      glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                  glm::vec3(0.0f, 0.0f, 1.0f));
-  ubo.proj =
-      glm::perspective(glm::radians(45.0f),
-                       m_swapchain.getSwapChainExtent().width /
-                           (float)m_swapchain.getSwapChainExtent().height,
-                       0.1f, 10.0f);
-  ubo.proj[1][1] *= -1;
+
+  ubo.model = glm::mat4(1.0f);
+  ubo.view = glm::mat4(1.0f);
+  ubo.proj = glm::mat4(1.0f);
+  ubo.view = camera.getViewMatrix();
+  ubo.proj = camera.getProjectionMatrix();
 
   m_uniformBufferManager[currentImage].writeData(&ubo);
 }

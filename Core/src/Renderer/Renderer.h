@@ -8,6 +8,7 @@
 #include "Meshes/Mesh.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
+#include "Scene/Camera/Camera.h"
 #include "Swapchain/Swapchain.h"
 #include "Texture/Texture.h"
 #include "VulkanSyncObjects/VulkanSyncObjects.h"
@@ -23,7 +24,7 @@ class Renderer {
 public:
   void init(const std::string &vertShaderPath,
             const std::string &fragShaderPath);
-  void update();
+  void update(Camera camera);
   void cleanup();
 
   void onFrameBufferResize();
@@ -32,7 +33,7 @@ private:
   void createVertexBuffer();
   void createIndexBuffer();
   void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-  void updateUniformBuffer(uint32_t currentImage);
+  void updateUniformBuffer(uint32_t currentImage, Camera camera);
   void drawFrame(uint32_t flightCurrentFrame);
   void initVulkan();
 

@@ -13,6 +13,9 @@ namespace Core {
 
 static Application *s_Application = nullptr;
 
+static float deltaTime = 0;
+static float lastFrame = 0;
+
 Application::Application(const ApplicationSpec &specification)
     : m_Specification(specification) {
   s_Application = this;
@@ -40,11 +43,14 @@ void Application::Run() {
 
   // Main Application loop
   while (m_Running) {
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
 
     m_Window->update();
 
     for (const std::unique_ptr<Layer> &layer : m_LayerStack)
-      layer->OnUpdate(0);
+      layer->OnUpdate(deltaTime);
 
     // NOTE: rendering can be done elsewhere (eg. render thread)
     for (const std::unique_ptr<Layer> &layer : m_LayerStack)
