@@ -20,6 +20,13 @@ void Mesh::loadFromFile(const char *path) {
   if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path)) {
     throw std::runtime_error(err);
   }
+  if (!err.empty()) {
+    std::cout << "Error loading model: " << err << '\n';
+  }
+
+  if (!warn.empty()) {
+    std::cout << "Warning loading model: " << warn << '\n';
+  }
 
   std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
