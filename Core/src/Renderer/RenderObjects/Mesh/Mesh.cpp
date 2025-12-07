@@ -1,4 +1,5 @@
 #include "Mesh.h"
+#include "RenderObjects/RenderObject.h"
 #include <filesystem>
 #include <iostream>
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -7,7 +8,9 @@
 Mesh::Mesh() {}
 Mesh::Mesh(const char *path) { loadFromFile(path); }
 Mesh::Mesh(const std::vector<Vertex> &vertexes,
-           const std::vector<uint32_t> &indexes) {}
+           const std::vector<uint32_t> &indexes) {
+  RenderObject(vertexes, indexes);
+}
 
 void Mesh::loadFromFile(const char *path) {
   tinyobj::attrib_t attrib;

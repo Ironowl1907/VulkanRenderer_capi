@@ -7,7 +7,7 @@
 #include <glm/fwd.hpp>
 #include <vector>
 
-#include "Meshes/Mesh.h"
+#include "RenderObjects/Mesh/Mesh.h"
 #include "Scene/Camera/Camera.h"
 
 #define GLM_FORCE_RADIANS

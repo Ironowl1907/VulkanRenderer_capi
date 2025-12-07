@@ -1,5 +1,7 @@
 #pragma once
+
 #include "Common/Vertex.h"
+#pragma once
 #include <string>
 #include <vector>
 
@@ -19,16 +21,15 @@ struct Material {
   std::string ambientTexture;  // map_Ka
 };
 
-class Mesh {
+class RenderObject {
 public:
-  Mesh();
-  Mesh(const char *path);
-  Mesh(const std::vector<Vertex> &vertexes,
-       const std::vector<uint32_t> &indexes);
+  RenderObject(){}
 
+  RenderObject(const std::vector<Vertex> &vertexes,
+               const std::vector<uint32_t> &indexes){m_vertices =vertexes; m_indices = indexes;}
   // Non-copyable
-  Mesh(const Mesh &) = delete;
-  Mesh &operator=(const Mesh &) = delete;
+  RenderObject(const RenderObject &) = delete;
+  RenderObject &operator=(const RenderObject &) = delete;
 
   // CPU Accessible
   const std::vector<Vertex> &getVertices() { return m_vertices; }
@@ -36,9 +37,12 @@ public:
   const std::vector<Material> &getMaterials() { return m_materials; }
   const std::vector<int> &getMaterialIndices() { return m_materialIndices; }
 
-  void loadFromFile(const char *path);
+  void setVertexes(const std::vector<Vertex> &vertexes) {
+    m_vertices = vertexes;
+  }
+  void setIndices(const std::vector<uint32_t> &indices) { m_indices = indices; }
 
-private:
+protected:
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
   std::vector<Material> m_materials;

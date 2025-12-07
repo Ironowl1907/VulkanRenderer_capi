@@ -3,9 +3,10 @@
 #include "BufferManager/UniformBufferManager.h"
 #include "Commands/CommandManager.h"
 #include "DescriptorManager/DescriptorManager.h"
-#include "Meshes/Mesh.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
+#include "RenderObjects/Mesh/Mesh.h"
+#include "RenderObjects/RenderObject.h"
 #include "Scene/Camera/Camera.h"
 #include "Swapchain/Swapchain.h"
 #include "Texture/Texture.h"
@@ -52,7 +53,15 @@ class Renderer {
 public:
   static void Init(const std::string &vertShaderPath,
                    const std::string &fragShaderPath);
-  static void Update(Camera camera);
+  [[deprecated("Should replace this with a new record fashion")]] static void
+  Update(Camera camera);
+
+  static void BeginDraw();
+  static void EndDraw();
+
+  static void DrawObject(RenderObject &renderObject);
+  static void SetClearColor(const glm::vec3 &color);
+
   static void Cleanup();
   static void OnFrameBufferResize();
 
