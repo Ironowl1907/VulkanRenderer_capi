@@ -43,7 +43,7 @@ void Renderer::init(const std::string &vertShaderPath,
   m_vertShaderPath = vertShaderPath;
   m_fragShaderPath = fragShaderPath;
 
-  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/sponza/sponza.obj");
+  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
   initVulkan();
 }
 
