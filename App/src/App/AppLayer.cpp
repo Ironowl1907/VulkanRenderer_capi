@@ -13,14 +13,14 @@
 #define FRAG_SHADER_PATH "../App/Shaders/frag.spv"
 
 AppLayer::AppLayer() {
-  m_renderer.init(VERT_SHADER_PATH, FRAG_SHADER_PATH);
+  m_renderer.Init(VERT_SHADER_PATH, FRAG_SHADER_PATH);
   m_camera.init(45.0f,
                 Core::Application::Get().getFramebufferSize().x /
                     Core::Application::Get().getFramebufferSize().y,
                 0.1f, 1000.0f);
 }
 
-AppLayer::~AppLayer() { m_renderer.cleanup(); }
+AppLayer::~AppLayer() { m_renderer.Cleanup(); }
 
 void AppLayer::OnUpdate(float ts) {
   // Movement speed and rotation speed
@@ -74,7 +74,7 @@ void AppLayer::OnUpdate(float ts) {
   m_camera.setRotation(rotation);
 }
 
-void AppLayer::OnRender() { m_renderer.update(m_camera); }
+void AppLayer::OnRender() { m_renderer.Update(m_camera); }
 
 void AppLayer::OnEvent(Event &event) {
   EventDispatcher dispatcher(event);
@@ -86,7 +86,7 @@ void AppLayer::OnEvent(Event &event) {
 }
 
 bool AppLayer::onWindownResize(Core::WindowResizeEvent &e) {
-  m_renderer.onFrameBufferResize();
+  m_renderer.OnFrameBufferResize();
   m_camera.setAspectRatio((float)e.GetWidth() / e.GetHeight());
   return false;
 }

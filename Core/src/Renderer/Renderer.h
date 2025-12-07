@@ -1,9 +1,7 @@
 #pragma once
-
 #include "BufferManager/BufferManager.h"
 #include "BufferManager/UniformBufferManager.h"
 #include "Commands/CommandManager.h"
-#include "Common/UniformBufferObject.h"
 #include "DescriptorManager/DescriptorManager.h"
 #include "Meshes/Mesh.h"
 #include "Pipeline/Pipeline.h"
@@ -13,59 +11,62 @@
 #include "Texture/Texture.h"
 #include "VulkanSyncObjects/VulkanSyncObjects.h"
 #include "vulkan/vulkan_core.h"
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
 #include <cstdint>
+#include <string>
 #include <vector>
+
+struct RendererData {
+  std::string VertShaderPath;
+  std::string FragShaderPath;
+
+  VulkanContext Context;
+  Swapchain Swapchain;
+  RenderPass RenderPass;
+  Pipeline Pipeline;
+
+  VkSurfaceKHR Surface;
+
+  BufferManager BufferManager;
+  CommandManager CommandManager;
+
+  Texture DemoTexture;
+  Mesh DragonMesh;
+
+  VkBuffer VertexBuffer = VK_NULL_HANDLE;
+  VkDeviceMemory VertexBufferMemory = VK_NULL_HANDLE;
+  VkBuffer IndexBuffer = VK_NULL_HANDLE;
+  VkDeviceMemory IndexBufferMemory = VK_NULL_HANDLE;
+
+  std::vector<UBOManager> UniformBufferManager;
+  DescriptorManager DescriptorManager;
+  std::vector<VkDescriptorSet> DescriptorSets;
+
+  VulkanSyncManager SyncManager;
+
+  bool FramebufferResized = false;
+};
 
 class Renderer {
 public:
-  void init(const std::string &vertShaderPath,
-            const std::string &fragShaderPath);
-  void update(Camera camera);
-  void cleanup();
+  static void Init(const std::string &vertShaderPath,
+                   const std::string &fragShaderPath);
+  static void Update(Camera camera);
+  static void Cleanup();
+  static void OnFrameBufferResize();
 
-  void onFrameBufferResize();
-
-private:
-  void createVertexBuffer();
-  void createIndexBuffer();
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-  void updateUniformBuffer(uint32_t currentImage, Camera camera);
-  void drawFrame(uint32_t flightCurrentFrame);
-  void initVulkan();
+  static inline RendererData &GetData() { return s_Data; }
 
 private:
-  std::string m_vertShaderPath;
-  std::string m_fragShaderPath;
-  VulkanContext m_context;
-  Swapchain m_swapchain;
-  RenderPass m_renderPass;
-  Pipeline m_pipeline;
+  static void CreateVertexBuffer();
+  static void CreateIndexBuffer();
+  static void RecordCommandBuffer(VkCommandBuffer commandBuffer,
+                                  uint32_t imageIndex);
+  static void UpdateUniformBuffer(uint32_t currentImage, Camera camera);
+  static void DrawFrame(uint32_t flightCurrentFrame);
+  static void InitVulkan();
 
-  VkSurfaceKHR m_surface;
-
-  BufferManager m_bufferManager;
-  CommandManager m_commandManager;
-
-  Texture m_demoTexture;
-
-  Mesh m_dragonMesh;
-
-  VkBuffer vertexBuffer;
-  VkDeviceMemory vertexBufferMemory;
-
-  VkBuffer indexBuffer;
-  VkDeviceMemory indexBufferMemory;
-
-  std::vector<UBOManager> m_uniformBufferManager;
-
-  DescriptorManager m_descriptorManager;
-  std::vector<VkDescriptorSet> m_descriptorSets;
-
-  VulkanSyncManager m_syncManager;
-
-  bool framebufferResized = false;
+private:
+  static RendererData s_Data;
 };
