@@ -278,14 +278,14 @@ void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
   }
 }
 
-void Renderer::UpdateUniformBuffer(uint32_t currentImage, Camera camera) {
+void Renderer::UpdateUniformBuffer(uint32_t currentFlightFrame, Camera camera) {
   UniformBufferObject ubo{};
 
   ubo.model = glm::mat4(1.0f);
   ubo.view = camera.getViewMatrix();
   ubo.proj = camera.getProjectionMatrix();
 
-  s_Data.UniformBufferManager[currentImage].writeData(&ubo);
+  s_Data.UniformBufferManager[currentFlightFrame].writeData(&ubo);
 }
 
 void Renderer::BeginDraw() {
@@ -308,8 +308,8 @@ void Renderer::BeginDraw() {
     throw std::runtime_error("failed to acquire swap chain image!");
   }
 
-  s_Data.FrameData.CommandBuffer =
-      s_Data.CommandManager.getFrameCommandBuffer(s_Data.FrameData.flightCurrentFrame);
+  s_Data.FrameData.CommandBuffer = s_Data.CommandManager.getFrameCommandBuffer(
+      s_Data.FrameData.flightCurrentFrame);
 }
 void Renderer::EndDraw() {
   VkSemaphore submitSemaphore = s_Data.SyncManager.getSubmitSemaphore(
