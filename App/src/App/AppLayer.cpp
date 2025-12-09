@@ -74,7 +74,11 @@ void AppLayer::OnUpdate(float ts) {
   m_camera.setRotation(rotation);
 }
 
-void AppLayer::OnRender() { m_renderer.Update(m_camera); }
+void AppLayer::OnRender() {
+  m_renderer.BeginDraw();
+  m_renderer.Update(m_camera);
+  m_renderer.EndDraw();
+}
 
 void AppLayer::OnEvent(Event &event) {
   EventDispatcher dispatcher(event);

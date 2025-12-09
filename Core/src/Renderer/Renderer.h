@@ -47,6 +47,18 @@ struct RendererData {
   VulkanSyncManager SyncManager;
 
   bool FramebufferResized = false;
+
+  struct {
+    uint32_t flightCurrentFrame;
+    uint32_t SwapChainImageIndex;
+    VkCommandBuffer CommandBuffer;
+
+    // Sync
+    VkSemaphore AdquireSemaphore;
+    VkSemaphore SubmitSemaphore;
+    VkFence FrameFence;
+
+  } FrameData;
 };
 
 class Renderer {
