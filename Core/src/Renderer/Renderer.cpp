@@ -99,9 +99,8 @@ void Renderer::InitVulkan() {
 }
 
 void Renderer::Update(Camera camera) {
-  uint32_t flightCurrentFrame = s_Data.SyncManager.getFlightFrameIndex();
-  UpdateUniformBuffer(flightCurrentFrame, camera);
-  DrawFrame(flightCurrentFrame);
+  UpdateUniformBuffer(camera);
+  DrawFrame();
 }
 
 void Renderer::Cleanup() {
@@ -278,14 +277,14 @@ void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
   }
 }
 
-void Renderer::UpdateUniformBuffer(uint32_t currentFlightFrame, Camera camera) {
+void Renderer::UpdateUniformBuffer(Camera camera) {
   UniformBufferObject ubo{};
 
   ubo.model = glm::mat4(1.0f);
   ubo.view = camera.getViewMatrix();
   ubo.proj = camera.getProjectionMatrix();
 
-  s_Data.UniformBufferManager[currentFlightFrame].writeData(&ubo);
+  s_Data.UniformBufferManager[s_Data.SyncManager.getFlightFrameIndex()].writeData(&ubo);
 }
 
 void Renderer::BeginDraw() {
@@ -362,7 +361,7 @@ void Renderer::EndDraw() {
   s_Data.SyncManager.nextFlightFrame();
 }
 
-void Renderer::DrawFrame(uint32_t flightCurrentFrame) {
+void Renderer::DrawFrame() {
 
   vkResetCommandBuffer(s_Data.FrameData.CommandBuffer, 0);
   RecordCommandBuffer(s_Data.FrameData.CommandBuffer,

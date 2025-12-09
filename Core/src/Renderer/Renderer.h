@@ -84,8 +84,8 @@ private:
   static void CreateIndexBuffer();
   static void RecordCommandBuffer(VkCommandBuffer commandBuffer,
                                   uint32_t imageIndex);
-  static void UpdateUniformBuffer(uint32_t currentImage, Camera camera);
-  static void DrawFrame(uint32_t flightCurrentFrame);
+  static void UpdateUniformBuffer(Camera camera);
+  static void DrawFrame();
   static void InitVulkan();
 
 private:
