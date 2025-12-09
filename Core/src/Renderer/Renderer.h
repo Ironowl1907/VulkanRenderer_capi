@@ -65,13 +65,13 @@ class Renderer {
 public:
   static void Init(const std::string &vertShaderPath,
                    const std::string &fragShaderPath);
-  [[deprecated("Should replace this with a new record fashion")]] static void
-  Update(Camera camera);
+  static void UpdateUniformBuffer(Camera camera);
 
   static void BeginDraw();
   static void EndDraw();
 
   static void DrawObject(RenderObject &renderObject);
+  static void DrawFrame();
   static void SetClearColor(const glm::vec3 &color);
 
   static void Cleanup();
@@ -84,8 +84,6 @@ private:
   static void CreateIndexBuffer();
   static void RecordCommandBuffer(VkCommandBuffer commandBuffer,
                                   uint32_t imageIndex);
-  static void UpdateUniformBuffer(Camera camera);
-  static void DrawFrame();
   static void InitVulkan();
 
 private:

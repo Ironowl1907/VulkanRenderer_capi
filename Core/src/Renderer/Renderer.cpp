@@ -98,11 +98,6 @@ void Renderer::InitVulkan() {
                           s_Data.Swapchain.getSwapChainImages().size());
 }
 
-void Renderer::Update(Camera camera) {
-  UpdateUniformBuffer(camera);
-  DrawFrame();
-}
-
 void Renderer::Cleanup() {
   vkDeviceWaitIdle(s_Data.Context.getDevice());
   s_Data.Pipeline.shutdown();
@@ -211,6 +206,8 @@ void Renderer::CreateIndexBuffer() {
 
 void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
                                    uint32_t imageIndex) {
+
+  vkResetCommandBuffer(s_Data.FrameData.CommandBuffer, 0);
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -284,7 +281,8 @@ void Renderer::UpdateUniformBuffer(Camera camera) {
   ubo.view = camera.getViewMatrix();
   ubo.proj = camera.getProjectionMatrix();
 
-  s_Data.UniformBufferManager[s_Data.SyncManager.getFlightFrameIndex()].writeData(&ubo);
+  s_Data.UniformBufferManager[s_Data.SyncManager.getFlightFrameIndex()]
+      .writeData(&ubo);
 }
 
 void Renderer::BeginDraw() {
@@ -362,8 +360,8 @@ void Renderer::EndDraw() {
 }
 
 void Renderer::DrawFrame() {
-
-  vkResetCommandBuffer(s_Data.FrameData.CommandBuffer, 0);
   RecordCommandBuffer(s_Data.FrameData.CommandBuffer,
                       s_Data.FrameData.SwapChainImageIndex);
 }
+
+void Renderer::DrawObject(RenderObject &renderObject) {}

@@ -72,11 +72,12 @@ void AppLayer::OnUpdate(float ts) {
   // Update camera
   m_camera.setPosition(position);
   m_camera.setRotation(rotation);
+  m_renderer.UpdateUniformBuffer(m_camera);
 }
 
 void AppLayer::OnRender() {
   m_renderer.BeginDraw();
-  m_renderer.Update(m_camera);
+  m_renderer.DrawFrame();
   m_renderer.EndDraw();
 }
 
