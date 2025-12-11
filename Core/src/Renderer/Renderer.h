@@ -19,34 +19,34 @@
 #include <vector>
 
 struct RendererData {
-  std::string VertShaderPath;
-  std::string FragShaderPath;
-  VulkanContext Context;
-  Swapchain Swapchain;
-  RenderPass RenderPass;
-  Pipeline Pipeline;
-  VkSurfaceKHR Surface;
-  BufferManager BufferManager;
-  CommandManager CommandManager;
-  std::vector<UBOManager> UniformBufferManager;
-  DescriptorManager DescriptorManager;
-  std::vector<VkDescriptorSet> DescriptorSets;
-  VulkanSyncManager SyncManager;
-  bool FramebufferResized = false;
+  std::string vertShaderPath;
+  std::string fragShaderPath;
+  VulkanContext context;
+  Swapchain swapchain;
+  RenderPass renderPass;
+  Pipeline pipeline;
+  VkSurfaceKHR surface;
+  BufferManager bufferManager;
+  CommandManager commandManager;
+  std::vector<UBOManager> uniformBufferManager;
+  DescriptorManager descriptorManager;
+  std::vector<VkDescriptorSet> descriptorSets;
+  VulkanSyncManager syncManager;
+  bool framebufferResized = false;
   struct {
     uint32_t flightCurrentFrame;
-    uint32_t SwapChainImageIndex;
-    VkCommandBuffer CommandBuffer;
+    uint32_t swapChainImageIndex;
+    VkCommandBuffer commandBuffer;
     // Sync
-    VkSemaphore AdquireSemaphore;
-    VkSemaphore SubmitSemaphore;
-    VkFence FrameFence;
-  } FrameData;
-  ObjManager ObjectManager;
+    VkSemaphore adquireSemaphore;
+    VkSemaphore submitSemaphore;
+    VkFence frameFence;
+  } frameData;
+  ObjManager objectManager;
 
   // Draw queue for batch rendering
-  std::vector<uint32_t> DrawQueue;
-  Texture WhiteTexture;
+  std::vector<uint32_t> drawQueue;
+  Texture whiteTexture;
 };
 
 class Renderer {
