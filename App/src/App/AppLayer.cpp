@@ -16,7 +16,9 @@
 AppLayer::AppLayer() {
   m_renderer.Init(VERT_SHADER_PATH, FRAG_SHADER_PATH);
   Mesh dragonMesh("/home/ironowl/Downloads/dragon/dragon.obj");
+  Mesh spooza("/home/ironowl/Downloads/sponza/sponza.obj");
   m_dragonMeshId = m_renderer.addObject(dragonMesh);
+  m_spoozaMeshId = m_renderer.addObject(spooza);
   m_camera.init(45.0f,
                 Core::Application::Get().getFramebufferSize().x /
                     Core::Application::Get().getFramebufferSize().y,
@@ -81,6 +83,7 @@ void AppLayer::OnUpdate(float ts) {
 void AppLayer::OnRender() {
   m_renderer.BeginDraw();
   m_renderer.DrawObject(m_dragonMeshId);
+  m_renderer.DrawObject(m_spoozaMeshId);
   m_renderer.EndDraw();
 }
 

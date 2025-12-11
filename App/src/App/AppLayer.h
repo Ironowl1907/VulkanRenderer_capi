@@ -31,4 +31,5 @@ private:
   Renderer m_renderer;
   Camera m_camera;
   uint32_t m_dragonMeshId;
+  uint32_t m_spoozaMeshId;
 };
