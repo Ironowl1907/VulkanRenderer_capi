@@ -27,15 +27,12 @@ public:
 
   RenderObject(const std::vector<Vertex> &vertexes,
                const std::vector<uint32_t> &indexes){m_vertices =vertexes; m_indices = indexes;}
-  // Non-copyable
-  RenderObject(const RenderObject &) = delete;
-  RenderObject &operator=(const RenderObject &) = delete;
 
   // CPU Accessible
-  const std::vector<Vertex> &getVertices() { return m_vertices; }
-  const std::vector<uint32_t> &getIndices() { return m_indices; }
-  const std::vector<Material> &getMaterials() { return m_materials; }
-  const std::vector<int> &getMaterialIndices() { return m_materialIndices; }
+  const std::vector<Vertex> &getVertices() const { return m_vertices; }
+  const std::vector<uint32_t> &getIndices() const { return m_indices; }
+  const std::vector<Material> &getMaterials() const { return m_materials; }
+  const std::vector<int> &getMaterialIndices() const { return m_materialIndices; }
 
   void setVertexes(const std::vector<Vertex> &vertexes) {
     m_vertices = vertexes;

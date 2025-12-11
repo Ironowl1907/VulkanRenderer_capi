@@ -3,17 +3,19 @@
 #include "Core/Application.h"
 #include "Core/Events/Event.h"
 #include "Core/Events/WindowEvents.h"
+#include "RenderObjects/Mesh/Mesh.h"
 #include "Renderer.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
-#include <iostream>
 
 #define VERT_SHADER_PATH "../App/Shaders/vert.spv"
 #define FRAG_SHADER_PATH "../App/Shaders/frag.spv"
 
 AppLayer::AppLayer() {
   m_renderer.Init(VERT_SHADER_PATH, FRAG_SHADER_PATH);
+  Mesh dragonMesh("/home/ironowl/Downloads/dragon/dragon.obj");
+  m_dragonMeshId = m_renderer.addObject(dragonMesh);
   m_camera.init(45.0f,
                 Core::Application::Get().getFramebufferSize().x /
                     Core::Application::Get().getFramebufferSize().y,
@@ -77,7 +79,7 @@ void AppLayer::OnUpdate(float ts) {
 
 void AppLayer::OnRender() {
   m_renderer.BeginDraw();
-  m_renderer.DrawFrame();
+  m_renderer.DrawObject(m_dragonMeshId);
   m_renderer.EndDraw();
 }
 

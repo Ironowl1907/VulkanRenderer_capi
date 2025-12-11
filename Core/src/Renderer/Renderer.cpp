@@ -42,7 +42,6 @@ void Renderer::Init(const std::string &vertShaderPath,
   s_Data.VertShaderPath = vertShaderPath;
   s_Data.FragShaderPath = fragShaderPath;
 
-  s_Data.DragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
   InitVulkan();
 }
 
@@ -75,8 +74,6 @@ void Renderer::InitVulkan() {
   s_Data.DemoTexture.init(&s_Data.Context, &s_Data.CommandManager);
   s_Data.DemoTexture.loadFromFile(&s_Data.Context, &s_Data.BufferManager,
                                   "../App/textures/mondongo.jpg");
-  CreateVertexBuffer();
-  CreateIndexBuffer();
 
   s_Data.UniformBufferManager.resize(MAX_FRAMES_IN_FLIGHT);
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
@@ -107,28 +104,11 @@ void Renderer::Cleanup() {
     s_Data.UniformBufferManager[i].shutdown();
   }
 
-  s_Data.DemoTexture.cleanup(&s_Data.Context);
-
   vkDestroyDescriptorSetLayout(s_Data.Context.getDevice(),
                                s_Data.Pipeline.getDescriptionSetLayout(),
                                nullptr);
 
   s_Data.DescriptorManager.shutdown();
-
-  if (s_Data.IndexBuffer != VK_NULL_HANDLE) {
-    vkDestroyBuffer(s_Data.Context.getDevice(), s_Data.IndexBuffer, nullptr);
-  }
-  if (s_Data.IndexBufferMemory != VK_NULL_HANDLE) {
-    vkFreeMemory(s_Data.Context.getDevice(), s_Data.IndexBufferMemory, nullptr);
-  }
-
-  if (s_Data.VertexBuffer != VK_NULL_HANDLE) {
-    vkDestroyBuffer(s_Data.Context.getDevice(), s_Data.VertexBuffer, nullptr);
-  }
-  if (s_Data.VertexBufferMemory != VK_NULL_HANDLE) {
-    vkFreeMemory(s_Data.Context.getDevice(), s_Data.VertexBufferMemory,
-                 nullptr);
-  }
 
   s_Data.SyncManager.cleanup();
 
@@ -139,69 +119,6 @@ void Renderer::Cleanup() {
   s_Data.Context.shutdown();
 
   glfwTerminate();
-}
-
-void Renderer::CreateVertexBuffer() {
-  auto vertices = s_Data.DragonMesh.getVertices();
-
-  VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  s_Data.BufferManager.createBuffer(bufferSize,
-                                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    stagingBuffer, stagingBufferMemory);
-
-  void *data;
-  vkMapMemory(s_Data.Context.getDevice(), stagingBufferMemory, 0, bufferSize, 0,
-              &data);
-  memcpy(data, vertices.data(), (size_t)bufferSize);
-  vkUnmapMemory(s_Data.Context.getDevice(), stagingBufferMemory);
-
-  s_Data.BufferManager.createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, s_Data.VertexBuffer,
-      s_Data.VertexBufferMemory);
-
-  s_Data.BufferManager.copyBuffer(stagingBuffer, s_Data.VertexBuffer,
-                                  bufferSize);
-
-  vkDestroyBuffer(s_Data.Context.getDevice(), stagingBuffer, nullptr);
-  vkFreeMemory(s_Data.Context.getDevice(), stagingBufferMemory, nullptr);
-}
-
-void Renderer::CreateIndexBuffer() {
-  auto indices = s_Data.DragonMesh.getIndices();
-  VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  s_Data.BufferManager.createBuffer(bufferSize,
-                                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                    stagingBuffer, stagingBufferMemory);
-
-  void *data;
-  vkMapMemory(s_Data.Context.getDevice(), stagingBufferMemory, 0, bufferSize, 0,
-              &data);
-  memcpy(data, indices.data(), (size_t)bufferSize);
-  vkUnmapMemory(s_Data.Context.getDevice(), stagingBufferMemory);
-
-  s_Data.BufferManager.createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, s_Data.IndexBuffer,
-      s_Data.IndexBufferMemory);
-
-  s_Data.BufferManager.copyBuffer(stagingBuffer, s_Data.IndexBuffer,
-                                  bufferSize);
-
-  vkDestroyBuffer(s_Data.Context.getDevice(), stagingBuffer, nullptr);
-  vkFreeMemory(s_Data.Context.getDevice(), stagingBufferMemory, nullptr);
 }
 
 void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
@@ -250,11 +167,11 @@ void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
   scissor.extent = s_Data.Swapchain.getSwapChainExtent();
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-  VkBuffer vertexBuffers[] = {s_Data.VertexBuffer};
+  VkBuffer vertexBuffers[] = {s_Data.ObjectManager.getVertexBuffer()};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-  vkCmdBindIndexBuffer(commandBuffer, s_Data.IndexBuffer, 0,
+  vkCmdBindIndexBuffer(commandBuffer, s_Data.ObjectManager.getIndexBuffer(), 0,
                        VK_INDEX_TYPE_UINT32);
 
   vkCmdBindDescriptorSets(
@@ -309,6 +226,8 @@ void Renderer::BeginDraw() {
       s_Data.FrameData.flightCurrentFrame);
 }
 void Renderer::EndDraw() {
+  RecordCommandBuffer(s_Data.FrameData.CommandBuffer,
+                      s_Data.FrameData.SwapChainImageIndex);
   VkSemaphore submitSemaphore = s_Data.SyncManager.getSubmitSemaphore(
       s_Data.FrameData.SwapChainImageIndex);
   VkSubmitInfo submitInfo{};
@@ -359,9 +278,8 @@ void Renderer::EndDraw() {
   s_Data.SyncManager.nextFlightFrame();
 }
 
-void Renderer::DrawFrame() {
-  RecordCommandBuffer(s_Data.FrameData.CommandBuffer,
-                      s_Data.FrameData.SwapChainImageIndex);
-}
+void Renderer::DrawObject(uint32_t objID) {}
 
-void Renderer::DrawObject(RenderObject &renderObject) {}
+uint32_t Renderer::addObject(RenderObject &obj) {
+  return s_Data.ObjectManager.addRenderObject(obj);
+}
