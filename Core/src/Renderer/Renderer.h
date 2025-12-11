@@ -1,71 +1,75 @@
 #pragma once
-
 #include "BufferManager/BufferManager.h"
 #include "BufferManager/UniformBufferManager.h"
 #include "Commands/CommandManager.h"
-#include "Common/UniformBufferObject.h"
 #include "DescriptorManager/DescriptorManager.h"
-#include "Meshes/Mesh.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
+#include "RenderObjects/ObjectManager.h"
+#include "RenderObjects/RenderObject.h"
 #include "Scene/Camera/Camera.h"
 #include "Swapchain/Swapchain.h"
 #include "Texture/Texture.h"
 #include "VulkanSyncObjects/VulkanSyncObjects.h"
 #include "vulkan/vulkan_core.h"
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
 #include <cstdint>
+#include <string>
 #include <vector>
+
+struct RendererData {
+  std::string vertShaderPath;
+  std::string fragShaderPath;
+  VulkanContext context;
+  Swapchain swapchain;
+  RenderPass renderPass;
+  Pipeline pipeline;
+  VkSurfaceKHR surface;
+  BufferManager bufferManager;
+  CommandManager commandManager;
+  std::vector<UBOManager> uniformBufferManager;
+  DescriptorManager descriptorManager;
+  std::vector<VkDescriptorSet> descriptorSets;
+  VulkanSyncManager syncManager;
+  bool framebufferResized = false;
+  struct {
+    uint32_t flightCurrentFrame;
+    uint32_t swapChainImageIndex;
+    VkCommandBuffer commandBuffer;
+    // Sync
+    VkSemaphore adquireSemaphore;
+    VkSemaphore submitSemaphore;
+    VkFence frameFence;
+  } frameData;
+  ObjManager objectManager;
+
+  // Draw queue for batch rendering
+  std::vector<uint32_t> drawQueue;
+  Texture whiteTexture;
+};
 
 class Renderer {
 public:
-  void init(const std::string &vertShaderPath,
-            const std::string &fragShaderPath);
-  void update(Camera camera);
-  void cleanup();
-
-  void onFrameBufferResize();
-
-private:
-  void createVertexBuffer();
-  void createIndexBuffer();
-  void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-  void updateUniformBuffer(uint32_t currentImage, Camera camera);
-  void drawFrame(uint32_t flightCurrentFrame);
-  void initVulkan();
+  static void Init(const std::string &vertShaderPath,
+                   const std::string &fragShaderPath);
+  [[nodiscard]] static uint32_t addObject(RenderObject &obj);
+  static void UpdateUniformBuffer(Camera camera);
+  static void BeginDraw();
+  static void EndDraw();
+  static void DrawObject(uint32_t objID);
+  static void SetClearColor(const glm::vec3 &color);
+  static void Cleanup();
+  static void OnFrameBufferResize();
+  static inline RendererData &GetData() { return s_Data; }
 
 private:
-  std::string m_vertShaderPath;
-  std::string m_fragShaderPath;
-  VulkanContext m_context;
-  Swapchain m_swapchain;
-  RenderPass m_renderPass;
-  Pipeline m_pipeline;
+  static void CreateVertexBuffer();
+  static void CreateIndexBuffer();
+  static void RecordCommandBuffer(VkCommandBuffer commandBuffer,
+                                  uint32_t imageIndex);
+  static void InitVulkan();
 
-  VkSurfaceKHR m_surface;
-
-  BufferManager m_bufferManager;
-  CommandManager m_commandManager;
-
-  Texture m_demoTexture;
-
-  Mesh m_dragonMesh;
-
-  VkBuffer vertexBuffer;
-  VkDeviceMemory vertexBufferMemory;
-
-  VkBuffer indexBuffer;
-  VkDeviceMemory indexBufferMemory;
-
-  std::vector<UBOManager> m_uniformBufferManager;
-
-  DescriptorManager m_descriptorManager;
-  std::vector<VkDescriptorSet> m_descriptorSets;
-
-  VulkanSyncManager m_syncManager;
-
-  bool framebufferResized = false;
+private:
+  static RendererData s_Data;
 };

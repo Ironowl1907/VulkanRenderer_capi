@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <stdint.h>
 
 #include "Core/Events/Event.h"
@@ -29,4 +30,6 @@ private:
 
   Renderer m_renderer;
   Camera m_camera;
+  uint32_t m_dragonMeshId;
+  uint32_t m_spoozaMeshId;
 };

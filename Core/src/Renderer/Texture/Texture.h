@@ -1,20 +1,20 @@
 #pragma once
-
 #include "BufferManager/BufferManager.h"
 #include "Commands/CommandManager.h"
 #include "Swapchain/Swapchain.h"
 #include "vulkan/vulkan_core.h"
 #include <string>
+
 class Texture {
 public:
-  void init(VulkanContext *p_context, CommandManager * p_cmdManager);
+  void init(VulkanContext *p_context, CommandManager *p_cmdManager);
   void loadFromFile(VulkanContext *p_context, BufferManager *p_bufferMan,
                     const std::string &path);
-
+  void createDefaultWhite(BufferManager *p_bufferMan);
   VkImageView getImageView() { return m_textureImageView; }
   VkSampler getSampler() { return m_textureSampler; }
 
-  void cleanup(VulkanContext *p_context);
+  void cleanup();
 
 private:
   void createTextureImage(VulkanContext *p_context,
@@ -27,6 +27,10 @@ private:
                              VkImageLayout oldLayout, VkImageLayout newLayout);
 
   void createTextureSampler(VulkanContext *p_context);
+
+  void createTextureFromData(VulkanContext *p_context,
+                             BufferManager *p_bufferMan,
+                             const unsigned char *data, int width, int height);
 
 private:
   VkImage m_textureImage;

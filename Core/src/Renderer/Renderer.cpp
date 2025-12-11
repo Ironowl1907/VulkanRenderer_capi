@@ -1,18 +1,15 @@
 #include "Renderer.h"
 #include "BufferManager/UniformBufferManager.h"
-#include "Common/Images/CreateImage.h"
 #include "Common/UniformBufferObject.h"
 #include "Core/Application.h"
 #include <GLFW/glfw3.h>
 #include <cstdint>
 #include <glm/fwd.hpp>
-#include <iostream>
 #include <vector>
 
-#include "Common/Vertex.h"
-#include "Core/Window.h"
-#include "Meshes/Mesh.h"
+#include "RenderObjects/Mesh/Mesh.h"
 #include "Scene/Camera/Camera.h"
+#include "vulkan/vulkan_core.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -23,7 +20,6 @@
 #include <stb_image.h>
 
 #include <array>
-#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
@@ -36,166 +32,105 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-void Renderer::onFrameBufferResize() { framebufferResized = true; }
+// Define static member
+RendererData Renderer::s_Data = {};
 
-void Renderer::init(const std::string &vertShaderPath,
+void Renderer::OnFrameBufferResize() { s_Data.framebufferResized = true; }
+
+void Renderer::Init(const std::string &vertShaderPath,
                     const std::string &fragShaderPath) {
-  m_vertShaderPath = vertShaderPath;
-  m_fragShaderPath = fragShaderPath;
+  s_Data.vertShaderPath = vertShaderPath;
+  s_Data.fragShaderPath = fragShaderPath;
 
-  m_dragonMesh.loadFromFile("/home/ironowl/Downloads/dragon/dragon.obj");
-  initVulkan();
+  InitVulkan();
 }
 
-void Renderer::initVulkan() {
+void Renderer::InitVulkan() {
   ApplicationInfo appInfo;
   appInfo.width = Core::Application::Get().getWindow()->getFramebufferSize().x;
   appInfo.height = Core::Application::Get().getWindow()->getFramebufferSize().y;
   appInfo.validationLayersEnabled = enableValidationLayers;
   appInfo.validationLayers = validationLayers;
 
-  m_context.init(appInfo);
+  s_Data.context.init(appInfo);
 
-  m_swapchain.init(&m_context);
-  m_swapchain.createSwapChain();
-  m_swapchain.createImageViews();
-  m_swapchain.createDepthResources();
+  s_Data.swapchain.init(&s_Data.context);
+  s_Data.swapchain.createSwapChain();
+  s_Data.swapchain.createImageViews();
+  s_Data.swapchain.createDepthResources();
 
-  m_renderPass.init(&m_context, m_swapchain);
+  s_Data.renderPass.init(&s_Data.context, s_Data.swapchain);
 
-  m_swapchain.createFramebuffers(m_renderPass.getRenderPass());
+  s_Data.swapchain.createFramebuffers(s_Data.renderPass.getRenderPass());
 
-  m_pipeline.init(&m_context, m_renderPass, m_vertShaderPath, m_fragShaderPath);
+  s_Data.pipeline.init(&s_Data.context, s_Data.renderPass,
+                       s_Data.vertShaderPath, s_Data.fragShaderPath);
 
-  m_commandManager.init(&m_context);
-  m_commandManager.createCommandPools();
+  s_Data.commandManager.init(&s_Data.context);
+  s_Data.commandManager.createCommandPools();
 
-  m_bufferManager.init(&m_context, &m_commandManager);
+  s_Data.bufferManager.init(&s_Data.context, &s_Data.commandManager);
 
-  m_demoTexture.init(&m_context, &m_commandManager);
-  m_demoTexture.loadFromFile(&m_context, &m_bufferManager,
-                             "../App/textures/mondongo.jpg");
-  createVertexBuffer();
-  createIndexBuffer();
+  s_Data.objectManager.init(&s_Data.context, &s_Data.bufferManager);
 
-  m_uniformBufferManager.resize(MAX_FRAMES_IN_FLIGHT);
+  s_Data.whiteTexture.init(&s_Data.context, &s_Data.commandManager);
+  s_Data.whiteTexture.createDefaultWhite(&s_Data.bufferManager);
+
+  s_Data.uniformBufferManager.resize(MAX_FRAMES_IN_FLIGHT);
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-    m_uniformBufferManager[i] =
-        UBOManager(&m_context, &m_bufferManager, sizeof(UniformBufferObject));
+    s_Data.uniformBufferManager[i] = UBOManager(
+        &s_Data.context, &s_Data.bufferManager, sizeof(UniformBufferObject));
   }
 
-  m_descriptorManager.init(&m_context);
-  m_descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
+  s_Data.descriptorManager.init(&s_Data.context);
+  s_Data.descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
   std::vector<VkDescriptorSetLayout> layouts(
-      MAX_FRAMES_IN_FLIGHT, m_pipeline.getDescriptionSetLayout());
-  m_descriptorSets = m_descriptorManager.allocateSets(
-      layouts, m_uniformBufferManager, m_demoTexture, MAX_FRAMES_IN_FLIGHT);
+      MAX_FRAMES_IN_FLIGHT, s_Data.pipeline.getDescriptionSetLayout());
+  s_Data.descriptorSets = s_Data.descriptorManager.allocateSets(
+      layouts, s_Data.uniformBufferManager, s_Data.whiteTexture,
+      MAX_FRAMES_IN_FLIGHT);
 
-  m_commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
+  s_Data.commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
 
-  m_syncManager.init(&m_context, MAX_FRAMES_IN_FLIGHT,
-                     m_swapchain.getSwapChainImages().size());
+  s_Data.syncManager.init(&s_Data.context, MAX_FRAMES_IN_FLIGHT,
+                          s_Data.swapchain.getSwapChainImages().size());
 }
 
-void Renderer::update(Camera camera) {
-  uint32_t flightCurrentFrame = m_syncManager.getFlightFrameIndex();
-  updateUniformBuffer(flightCurrentFrame, camera);
-  drawFrame(flightCurrentFrame);
-}
+void Renderer::Cleanup() {
+  vkDeviceWaitIdle(s_Data.context.getDevice());
 
-void Renderer::cleanup() {
-  vkDeviceWaitIdle(m_context.getDevice());
-  m_pipeline.shutdown();
-  m_renderPass.shutdown();
+  s_Data.whiteTexture.cleanup();
+
+  s_Data.objectManager.shutdown();
+
+  s_Data.pipeline.shutdown();
+  s_Data.renderPass.shutdown();
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    m_uniformBufferManager[i].shutdown();
+    s_Data.uniformBufferManager[i].shutdown();
   }
 
-  m_demoTexture.cleanup(&m_context);
+  vkDestroyDescriptorSetLayout(s_Data.context.getDevice(),
+                               s_Data.pipeline.getDescriptionSetLayout(),
+                               nullptr);
 
-  vkDestroyDescriptorSetLayout(m_context.getDevice(),
-                               m_pipeline.getDescriptionSetLayout(), nullptr);
+  s_Data.descriptorManager.shutdown();
 
-  m_descriptorManager.shutdown();
+  s_Data.syncManager.cleanup();
 
-  vkDestroyBuffer(m_context.getDevice(), indexBuffer, nullptr);
-  vkFreeMemory(m_context.getDevice(), indexBufferMemory, nullptr);
+  s_Data.commandManager.shutdown();
 
-  vkDestroyBuffer(m_context.getDevice(), vertexBuffer, nullptr);
-  vkFreeMemory(m_context.getDevice(), vertexBufferMemory, nullptr);
+  s_Data.swapchain.shutdown();
 
-  m_syncManager.cleanup();
-
-  m_commandManager.shutdown();
-
-  m_swapchain.shutdown();
-
-  m_context.shutdown();
+  s_Data.context.shutdown();
 
   glfwTerminate();
 }
 
-void Renderer::createVertexBuffer() {
-  auto vertices = m_dragonMesh.getVertices();
-
-  // Load to GPU
-  VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  m_bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               stagingBuffer, stagingBufferMemory);
-
-  void *data;
-  vkMapMemory(m_context.getDevice(), stagingBufferMemory, 0, bufferSize, 0,
-              &data);
-  memcpy(data, vertices.data(), (size_t)bufferSize);
-  vkUnmapMemory(m_context.getDevice(), stagingBufferMemory);
-
-  m_bufferManager.createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-  m_bufferManager.copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-  vkDestroyBuffer(m_context.getDevice(), stagingBuffer, nullptr);
-  vkFreeMemory(m_context.getDevice(), stagingBufferMemory, nullptr);
-}
-
-void Renderer::createIndexBuffer() {
-  auto indices = m_dragonMesh.getIndices();
-  VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
-  VkBuffer stagingBuffer;
-  VkDeviceMemory stagingBufferMemory;
-  m_bufferManager.createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               stagingBuffer, stagingBufferMemory);
-
-  void *data;
-  vkMapMemory(m_context.getDevice(), stagingBufferMemory, 0, bufferSize, 0,
-              &data);
-  memcpy(data, indices.data(), (size_t)bufferSize);
-  vkUnmapMemory(m_context.getDevice(), stagingBufferMemory);
-
-  m_bufferManager.createBuffer(
-      bufferSize,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-  m_bufferManager.copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-  vkDestroyBuffer(m_context.getDevice(), stagingBuffer, nullptr);
-  vkFreeMemory(m_context.getDevice(), stagingBufferMemory, nullptr);
-}
-
-void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
+void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
                                    uint32_t imageIndex) {
+
+  vkResetCommandBuffer(commandBuffer, 0);
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -205,11 +140,11 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
   VkRenderPassBeginInfo renderPassInfo{};
   renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = m_renderPass.getRenderPass();
+  renderPassInfo.renderPass = s_Data.renderPass.getRenderPass();
   renderPassInfo.framebuffer =
-      m_swapchain.getSwapChainFramebuffers()[imageIndex];
+      s_Data.swapchain.getSwapChainFramebuffers()[imageIndex];
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = m_swapchain.getSwapChainExtent();
+  renderPassInfo.renderArea.extent = s_Data.swapchain.getSwapChainExtent();
 
   std::array<VkClearValue, 2> clearValues{};
   clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
@@ -222,36 +157,43 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
                        VK_SUBPASS_CONTENTS_INLINE);
 
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    m_pipeline.getPipeline());
+                    s_Data.pipeline.getPipeline());
 
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = (float)m_swapchain.getSwapChainExtent().width;
-  viewport.height = (float)m_swapchain.getSwapChainExtent().height;
+  viewport.width = (float)s_Data.swapchain.getSwapChainExtent().width;
+  viewport.height = (float)s_Data.swapchain.getSwapChainExtent().height;
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
   vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = m_swapchain.getSwapChainExtent();
+  scissor.extent = s_Data.swapchain.getSwapChainExtent();
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-  VkBuffer vertexBuffers[] = {vertexBuffer};
+  // Bind shared vertex and index buffers
+  VkBuffer vertexBuffers[] = {s_Data.objectManager.getVertexBuffer()};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+  vkCmdBindIndexBuffer(commandBuffer, s_Data.objectManager.getIndexBuffer(), 0,
+                       VK_INDEX_TYPE_UINT32);
 
-  vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
+  // Bind descriptor sets once
   vkCmdBindDescriptorSets(
       commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-      m_pipeline.getPipelineLayout(), 0, 1,
-      &m_descriptorSets[m_syncManager.getFlightFrameIndex()], 0, nullptr);
+      s_Data.pipeline.getPipelineLayout(), 0, 1,
+      &s_Data.descriptorSets[s_Data.syncManager.getFlightFrameIndex()], 0,
+      nullptr);
 
-  vkCmdDrawIndexed(commandBuffer,
-                   static_cast<uint32_t>(m_dragonMesh.getIndices().size()), 1,
-                   0, 0, 0);
+  // Draw all queued objects
+  for (uint32_t objId : s_Data.drawQueue) {
+    const ObjBufferInfo &objInfo = s_Data.objectManager.getObjInfo(objId);
+
+    vkCmdDrawIndexed(commandBuffer, objInfo.indexCount, 1, objInfo.indexOffset,
+                     objInfo.vertexOffsetValue, 0);
+  }
 
   vkCmdEndRenderPass(commandBuffer);
 
@@ -260,51 +202,54 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
   }
 }
 
-void Renderer::updateUniformBuffer(uint32_t currentImage, Camera camera) {
-
+void Renderer::UpdateUniformBuffer(Camera camera) {
   UniformBufferObject ubo{};
 
   ubo.model = glm::mat4(1.0f);
-  ubo.view = glm::mat4(1.0f);
-  ubo.proj = glm::mat4(1.0f);
   ubo.view = camera.getViewMatrix();
   ubo.proj = camera.getProjectionMatrix();
 
-  m_uniformBufferManager[currentImage].writeData(&ubo);
+  s_Data.uniformBufferManager[s_Data.syncManager.getFlightFrameIndex()]
+      .writeData(&ubo);
 }
 
-void Renderer::drawFrame(uint32_t flightCurrentFrame) {
-  VkFence frameFence = m_syncManager.getFrameFence();
-  vkWaitForFences(m_context.getDevice(), 1, &frameFence, VK_TRUE, UINT64_MAX);
-  vkResetFences(m_context.getDevice(), 1, &frameFence);
+void Renderer::BeginDraw() {
+  s_Data.frameData.frameFence = s_Data.syncManager.getFrameFence();
+  vkWaitForFences(s_Data.context.getDevice(), 1, &s_Data.frameData.frameFence,
+                  VK_TRUE, UINT64_MAX);
+  vkResetFences(s_Data.context.getDevice(), 1, &s_Data.frameData.frameFence);
 
-  uint32_t swapChainImageIndex;
-  VkSemaphore acquireSemaphore = m_syncManager.getAcquireSemaphore();
+  s_Data.frameData.adquireSemaphore = s_Data.syncManager.getAcquireSemaphore();
 
   VkResult result = vkAcquireNextImageKHR(
-      m_context.getDevice(), m_swapchain.getSwapChain(), UINT64_MAX,
-      acquireSemaphore, VK_NULL_HANDLE, &swapChainImageIndex);
-
-  VkSemaphore submitSemaphore =
-      m_syncManager.getSubmitSemaphore(swapChainImageIndex);
+      s_Data.context.getDevice(), s_Data.swapchain.getSwapChain(), UINT64_MAX,
+      s_Data.frameData.adquireSemaphore, VK_NULL_HANDLE,
+      &s_Data.frameData.swapChainImageIndex);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-    m_swapchain.recreateSwapChain(m_renderPass.getRenderPass());
+    s_Data.swapchain.recreateSwapChain(s_Data.renderPass.getRenderPass());
     return;
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     throw std::runtime_error("failed to acquire swap chain image!");
   }
 
-  VkCommandBuffer commandBuffer =
-      m_commandManager.getFrameCommandBuffer(flightCurrentFrame);
+  s_Data.frameData.commandBuffer = s_Data.commandManager.getFrameCommandBuffer(
+      s_Data.syncManager.getFlightFrameIndex());
 
-  vkResetCommandBuffer(commandBuffer, 0);
-  recordCommandBuffer(commandBuffer, swapChainImageIndex);
+  // Clear the draw queue for this frame
+  s_Data.drawQueue.clear();
+}
 
+void Renderer::EndDraw() {
+  RecordCommandBuffer(s_Data.frameData.commandBuffer,
+                      s_Data.frameData.swapChainImageIndex);
+
+  VkSemaphore submitSemaphore = s_Data.syncManager.getSubmitSemaphore(
+      s_Data.frameData.swapChainImageIndex);
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-  VkSemaphore waitSemaphores[] = {acquireSemaphore};
+  VkSemaphore waitSemaphores[] = {s_Data.frameData.adquireSemaphore};
   VkPipelineStageFlags waitStages[] = {
       VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submitInfo.waitSemaphoreCount = 1;
@@ -312,14 +257,14 @@ void Renderer::drawFrame(uint32_t flightCurrentFrame) {
   submitInfo.pWaitDstStageMask = waitStages;
 
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
+  submitInfo.pCommandBuffers = &s_Data.frameData.commandBuffer;
 
   VkSemaphore signalSemaphores[] = {submitSemaphore};
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
-  if (vkQueueSubmit(m_context.getGraphicsQueue(), 1, &submitInfo, frameFence) !=
-      VK_SUCCESS) {
+  if (vkQueueSubmit(s_Data.context.getGraphicsQueue(), 1, &submitInfo,
+                    s_Data.frameData.frameFence) != VK_SUCCESS) {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
 
@@ -329,21 +274,31 @@ void Renderer::drawFrame(uint32_t flightCurrentFrame) {
   presentInfo.waitSemaphoreCount = 1;
   presentInfo.pWaitSemaphores = signalSemaphores;
 
-  VkSwapchainKHR swapChains[] = {m_swapchain.getSwapChain()};
+  VkSwapchainKHR swapChains[] = {s_Data.swapchain.getSwapChain()};
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains;
 
-  presentInfo.pImageIndices = &swapChainImageIndex;
+  presentInfo.pImageIndices = &s_Data.frameData.swapChainImageIndex;
 
-  result = vkQueuePresentKHR(m_context.getPresentQueue(), &presentInfo);
+  VkResult result;
+  result = vkQueuePresentKHR(s_Data.context.getPresentQueue(), &presentInfo);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
-      framebufferResized) {
-    framebufferResized = false;
-    m_swapchain.recreateSwapChain(m_renderPass.getRenderPass());
+      s_Data.framebufferResized) {
+    s_Data.framebufferResized = false;
+    s_Data.swapchain.recreateSwapChain(s_Data.renderPass.getRenderPass());
   } else if (result != VK_SUCCESS) {
     throw std::runtime_error("failed to present swap chain image!");
   }
 
-  m_syncManager.nextFlightFrame();
+  s_Data.syncManager.nextFlightFrame();
+}
+
+void Renderer::DrawObject(uint32_t objID) {
+  // Add object to the draw queue
+  s_Data.drawQueue.push_back(objID);
+}
+
+uint32_t Renderer::addObject(RenderObject &obj) {
+  return s_Data.objectManager.addRenderObject(obj);
 }
