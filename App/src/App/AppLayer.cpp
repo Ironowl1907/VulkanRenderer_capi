@@ -7,6 +7,7 @@
 #include "Renderer.h"
 
 #include <GLFW/glfw3.h>
+#include <cstdint>
 #include <glm/glm.hpp>
 
 #define VERT_SHADER_PATH "../App/Shaders/vert.spv"

@@ -71,9 +71,10 @@ void Renderer::InitVulkan() {
 
   s_Data.BufferManager.init(&s_Data.Context, &s_Data.CommandManager);
 
-  s_Data.DemoTexture.init(&s_Data.Context, &s_Data.CommandManager);
-  s_Data.DemoTexture.loadFromFile(&s_Data.Context, &s_Data.BufferManager,
-                                  "../App/textures/mondongo.jpg");
+  s_Data.ObjectManager.init(&s_Data.Context, &s_Data.BufferManager);
+
+  s_Data.WhiteTexture.init(&s_Data.Context, &s_Data.CommandManager);
+  s_Data.WhiteTexture.createDefaultWhite(&s_Data.BufferManager);
 
   s_Data.UniformBufferManager.resize(MAX_FRAMES_IN_FLIGHT);
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
@@ -86,7 +87,7 @@ void Renderer::InitVulkan() {
   std::vector<VkDescriptorSetLayout> layouts(
       MAX_FRAMES_IN_FLIGHT, s_Data.Pipeline.getDescriptionSetLayout());
   s_Data.DescriptorSets = s_Data.DescriptorManager.allocateSets(
-      layouts, s_Data.UniformBufferManager, s_Data.DemoTexture,
+      layouts, s_Data.UniformBufferManager, s_Data.WhiteTexture,
       MAX_FRAMES_IN_FLIGHT);
 
   s_Data.CommandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
@@ -97,6 +98,9 @@ void Renderer::InitVulkan() {
 
 void Renderer::Cleanup() {
   vkDeviceWaitIdle(s_Data.Context.getDevice());
+
+  s_Data.ObjectManager.shutdown();
+
   s_Data.Pipeline.shutdown();
   s_Data.RenderPass.shutdown();
 
@@ -124,7 +128,7 @@ void Renderer::Cleanup() {
 void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
                                    uint32_t imageIndex) {
 
-  vkResetCommandBuffer(s_Data.FrameData.CommandBuffer, 0);
+  vkResetCommandBuffer(commandBuffer, 0);
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -167,22 +171,27 @@ void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
   scissor.extent = s_Data.Swapchain.getSwapChainExtent();
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+  // Bind shared vertex and index buffers
   VkBuffer vertexBuffers[] = {s_Data.ObjectManager.getVertexBuffer()};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
   vkCmdBindIndexBuffer(commandBuffer, s_Data.ObjectManager.getIndexBuffer(), 0,
                        VK_INDEX_TYPE_UINT32);
 
+  // Bind descriptor sets once
   vkCmdBindDescriptorSets(
       commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
       s_Data.Pipeline.getPipelineLayout(), 0, 1,
       &s_Data.DescriptorSets[s_Data.SyncManager.getFlightFrameIndex()], 0,
       nullptr);
 
-  vkCmdDrawIndexed(commandBuffer,
-                   static_cast<uint32_t>(s_Data.DragonMesh.getIndices().size()),
-                   1, 0, 0, 0);
+  // Draw all queued objects
+  for (uint32_t objId : s_Data.DrawQueue) {
+    const ObjBufferInfo &objInfo = s_Data.ObjectManager.getObjInfo(objId);
+
+    vkCmdDrawIndexed(commandBuffer, objInfo.indexCount, 1, objInfo.indexOffset,
+                     objInfo.vertexOffsetValue, 0);
+  }
 
   vkCmdEndRenderPass(commandBuffer);
 
@@ -223,11 +232,16 @@ void Renderer::BeginDraw() {
   }
 
   s_Data.FrameData.CommandBuffer = s_Data.CommandManager.getFrameCommandBuffer(
-      s_Data.FrameData.flightCurrentFrame);
+      s_Data.SyncManager.getFlightFrameIndex());
+
+  // Clear the draw queue for this frame
+  s_Data.DrawQueue.clear();
 }
+
 void Renderer::EndDraw() {
   RecordCommandBuffer(s_Data.FrameData.CommandBuffer,
                       s_Data.FrameData.SwapChainImageIndex);
+
   VkSemaphore submitSemaphore = s_Data.SyncManager.getSubmitSemaphore(
       s_Data.FrameData.SwapChainImageIndex);
   VkSubmitInfo submitInfo{};
@@ -278,7 +292,10 @@ void Renderer::EndDraw() {
   s_Data.SyncManager.nextFlightFrame();
 }
 
-void Renderer::DrawObject(uint32_t objID) {}
+void Renderer::DrawObject(uint32_t objID) {
+  // Add object to the draw queue
+  s_Data.DrawQueue.push_back(objID);
+}
 
 uint32_t Renderer::addObject(RenderObject &obj) {
   return s_Data.ObjectManager.addRenderObject(obj);

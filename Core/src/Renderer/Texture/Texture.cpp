@@ -14,10 +14,59 @@ void Texture::init(VulkanContext *p_context, CommandManager *p_cmdManager) {
 
 void Texture::loadFromFile(VulkanContext *p_context, BufferManager *p_bufferMan,
                            const std::string &path) {
-
   createTextureImage(p_context, p_bufferMan, path);
   createTextureImageView(p_context);
   createTextureSampler(p_context);
+}
+
+void Texture::createDefaultWhite(BufferManager *p_bufferMan) {
+  // Create a 1x1 white texture
+  const int width = 1;
+  const int height = 1;
+  unsigned char whitePixel[4] = {255, 255, 255, 255}; // RGBA white
+
+  createTextureFromData(mp_context, p_bufferMan, whitePixel, width, height);
+  createTextureImageView(mp_context);
+  createTextureSampler(mp_context);
+}
+
+void Texture::createTextureFromData(VulkanContext *p_context,
+                                    BufferManager *p_bufferMan,
+                                    const unsigned char *data, int width,
+                                    int height) {
+  VkDeviceSize imageSize = width * height * 4;
+
+  VkBuffer stagingBuffer;
+  VkDeviceMemory stagingBufferMemory;
+  p_bufferMan->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                            stagingBuffer, stagingBufferMemory);
+
+  void *mappedData;
+  vkMapMemory(p_context->getDevice(), stagingBufferMemory, 0, imageSize, 0,
+              &mappedData);
+  memcpy(mappedData, data, static_cast<size_t>(imageSize));
+  vkUnmapMemory(p_context->getDevice(), stagingBufferMemory);
+
+  createImage(p_context, width, height, VK_FORMAT_R8G8B8A8_SRGB,
+              VK_IMAGE_TILING_OPTIMAL,
+              VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_textureImage,
+              m_textureImageMemory);
+
+  transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+                        VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  p_bufferMan->copyBufferToImage(stagingBuffer, m_textureImage,
+                                 static_cast<uint32_t>(width),
+                                 static_cast<uint32_t>(height));
+  transitionImageLayout(m_textureImage, VK_FORMAT_R8G8B8A8_SRGB,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  vkDestroyBuffer(p_context->getDevice(), stagingBuffer, nullptr);
+  vkFreeMemory(p_context->getDevice(), stagingBufferMemory, nullptr);
 }
 
 void Texture::createTextureImage(VulkanContext *p_context,
@@ -142,10 +191,8 @@ void Texture::createTextureSampler(VulkanContext *p_context) {
 }
 
 void Texture::cleanup(VulkanContext *p_context) {
-
   vkDestroySampler(p_context->getDevice(), m_textureSampler, nullptr);
   vkDestroyImageView(p_context->getDevice(), m_textureImageView, nullptr);
-
   vkDestroyImage(p_context->getDevice(), m_textureImage, nullptr);
   vkFreeMemory(p_context->getDevice(), m_textureImageMemory, nullptr);
 }
