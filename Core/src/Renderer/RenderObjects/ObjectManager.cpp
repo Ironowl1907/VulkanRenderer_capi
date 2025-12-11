@@ -10,7 +10,7 @@ void ObjManager::init(VulkanContext *p_context,
   mp_bufferManager = p_bufferManager;
   mp_context = p_context;
 }
-void ObjManager::shutdown() {}
+void ObjManager::shutdown() { destroyBuffers(); }
 
 uint32_t ObjManager::addRenderObject(const RenderObject &obj) {
   uint32_t objId = m_objects.size();

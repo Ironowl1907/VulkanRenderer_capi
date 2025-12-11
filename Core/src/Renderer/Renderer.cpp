@@ -99,6 +99,8 @@ void Renderer::InitVulkan() {
 void Renderer::Cleanup() {
   vkDeviceWaitIdle(s_Data.context.getDevice());
 
+  s_Data.whiteTexture.cleanup();
+
   s_Data.objectManager.shutdown();
 
   s_Data.pipeline.shutdown();

@@ -14,7 +14,7 @@ public:
   VkImageView getImageView() { return m_textureImageView; }
   VkSampler getSampler() { return m_textureSampler; }
 
-  void cleanup(VulkanContext *p_context);
+  void cleanup();
 
 private:
   void createTextureImage(VulkanContext *p_context,

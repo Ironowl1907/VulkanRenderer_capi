@@ -190,9 +190,9 @@ void Texture::createTextureSampler(VulkanContext *p_context) {
   }
 }
 
-void Texture::cleanup(VulkanContext *p_context) {
-  vkDestroySampler(p_context->getDevice(), m_textureSampler, nullptr);
-  vkDestroyImageView(p_context->getDevice(), m_textureImageView, nullptr);
-  vkDestroyImage(p_context->getDevice(), m_textureImage, nullptr);
-  vkFreeMemory(p_context->getDevice(), m_textureImageMemory, nullptr);
+void Texture::cleanup() {
+  vkDestroySampler(mp_context->getDevice(), m_textureSampler, nullptr);
+  vkDestroyImageView(mp_context->getDevice(), m_textureImageView, nullptr);
+  vkDestroyImage(mp_context->getDevice(), m_textureImage, nullptr);
+  vkFreeMemory(mp_context->getDevice(), m_textureImageMemory, nullptr);
 }
