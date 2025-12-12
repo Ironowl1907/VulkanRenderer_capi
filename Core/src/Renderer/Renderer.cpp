@@ -84,6 +84,7 @@ void Renderer::InitVulkan() {
 
   s_Data.descriptorManager.init(&s_Data.context);
   s_Data.descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
+
   std::vector<VkDescriptorSetLayout> layouts(
       MAX_FRAMES_IN_FLIGHT, s_Data.pipeline.getDescriptionSetLayout());
   s_Data.descriptorSets = s_Data.descriptorManager.allocateSets(

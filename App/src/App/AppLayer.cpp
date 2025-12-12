@@ -22,7 +22,7 @@ AppLayer::AppLayer() {
   m_camera.init(45.0f,
                 Core::Application::Get().getFramebufferSize().x /
                     Core::Application::Get().getFramebufferSize().y,
-                0.1f, 1000.0f);
+                0.001f, 1000.0f);
 }
 
 AppLayer::~AppLayer() { m_renderer.Cleanup(); }
