@@ -70,7 +70,7 @@ public:
                                      uint32_t count);
   DescriptorPoolBuilder &setPoolFlags(VkDescriptorPoolCreateFlags flags);
   DescriptorPoolBuilder &setMaxSets(uint32_t count);
-  DescriptorPool *build() const;
+  std::unique_ptr<DescriptorPool> build() const;
 
 private:
   VulkanContext *mp_context;
