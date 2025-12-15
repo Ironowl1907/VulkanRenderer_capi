@@ -7,6 +7,7 @@
 #include <glm/fwd.hpp>
 #include <vector>
 
+#include "Descriptors/Descriptors.h"
 #include "RenderObjects/Mesh/Mesh.h"
 #include "Scene/Camera/Camera.h"
 #include "vulkan/vulkan_core.h"
@@ -82,14 +83,30 @@ void Renderer::InitVulkan() {
         &s_Data.context, &s_Data.bufferManager, sizeof(UniformBufferObject));
   }
 
-  s_Data.descriptorManager.init(&s_Data.context);
-  s_Data.descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
+  // s_Data.descriptorManager.init(&s_Data.context);
+  // s_Data.descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
+  //
+  // std::vector<VkDescriptorSetLayout> layouts(
+  //     MAX_FRAMES_IN_FLIGHT, s_Data.pipeline.getDescriptionSetLayout());
+  // s_Data.descriptorSets = s_Data.descriptorManager.allocateSets(
+  //     layouts, s_Data.uniformBufferManager, s_Data.whiteTexture,
+  //     MAX_FRAMES_IN_FLIGHT);
 
-  std::vector<VkDescriptorSetLayout> layouts(
-      MAX_FRAMES_IN_FLIGHT, s_Data.pipeline.getDescriptionSetLayout());
-  s_Data.descriptorSets = s_Data.descriptorManager.allocateSets(
-      layouts, s_Data.uniformBufferManager, s_Data.whiteTexture,
-      MAX_FRAMES_IN_FLIGHT);
+  s_Data.globalPool =
+      DescriptorPoolBuilder(&s_Data.context)
+          .setMaxSets(MAX_FRAMES_IN_FLIGHT)
+          .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT)
+          .build();
+
+  s_Data.globalSetLayout = DescriptorSetLayoutBuilder(&s_Data.context)
+                               .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                           VK_SHADER_STAGE_VERTEX_BIT)
+                               .build();
+
+  std::vector<VkDescriptorSet> globalDescriptorSets(MAX_FRAMES_IN_FLIGHT);
+	for (int i = 0; < globalDescriptorSets.size(); i++) {
+		auto bufferInfo =  s_Data.uniformBufferManager[i].
+	}
 
   s_Data.commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
 
@@ -115,7 +132,8 @@ void Renderer::Cleanup() {
                                s_Data.pipeline.getDescriptionSetLayout(),
                                nullptr);
 
-  s_Data.descriptorManager.shutdown();
+  // TODO: Fix cleanup
+  // s_Data.descriptorManager.shutdown();
 
   s_Data.syncManager.cleanup();
 

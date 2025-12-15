@@ -2,7 +2,7 @@
 #include "BufferManager/BufferManager.h"
 #include "BufferManager/UniformBufferManager.h"
 #include "Commands/CommandManager.h"
-#include "DescriptorManager/DescriptorManager.h"
+#include "Descriptors/Descriptors.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderPass.h"
 #include "RenderObjects/ObjectManager.h"
@@ -12,6 +12,7 @@
 #include "Texture/Texture.h"
 #include "VulkanSyncObjects/VulkanSyncObjects.h"
 #include "vulkan/vulkan_core.h"
+#include <memory>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <cstdint>
@@ -29,8 +30,12 @@ struct RendererData {
   BufferManager bufferManager;
   CommandManager commandManager;
   std::vector<UBOManager> uniformBufferManager;
-  DescriptorManager descriptorManager;
-  std::vector<VkDescriptorSet> descriptorSets;
+
+  // DescriptorManager descriptorManager;
+  // std::vector<VkDescriptorSet> descriptorSets;
+  std::unique_ptr<DescriptorPool> globalPool;
+  std::unique_ptr<DescriptorSetLayout> globalSetLayout;
+
   VulkanSyncManager syncManager;
   bool framebufferResized = false;
   struct {
