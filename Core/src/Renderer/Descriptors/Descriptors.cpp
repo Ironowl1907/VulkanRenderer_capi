@@ -127,7 +127,7 @@ DescriptorWriter::DescriptorWriter(DescriptorSetLayout &setLayout,
 DescriptorWriter &
 DescriptorWriter::writeBuffer(uint32_t binding,
                               VkDescriptorBufferInfo *bufferInfo) {
-  assert(setLayout.bindings.count(binding) == 1 &&
+  assert(setLayout.m_bindings.count(binding) == 1 &&
          "Layout does not contain specified binding");
 
   auto &bindingDescription = setLayout.m_bindings[binding];
@@ -149,7 +149,7 @@ DescriptorWriter::writeBuffer(uint32_t binding,
 DescriptorWriter &
 DescriptorWriter::writeImage(uint32_t binding,
                              VkDescriptorImageInfo *imageInfo) {
-  assert(setLayout.bindings.count(binding) == 1 &&
+  assert(setLayout.m_bindings.count(binding) == 1 &&
          "Layout does not contain specified binding");
 
   auto &bindingDescription = setLayout.m_bindings[binding];

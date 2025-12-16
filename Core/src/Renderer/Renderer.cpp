@@ -103,10 +103,14 @@ void Renderer::InitVulkan() {
                                            VK_SHADER_STAGE_VERTEX_BIT)
                                .build();
 
-  std::vector<VkDescriptorSet> globalDescriptorSets(MAX_FRAMES_IN_FLIGHT);
-	for (int i = 0; < globalDescriptorSets.size(); i++) {
-		auto bufferInfo =  s_Data.uniformBufferManager[i].
-	}
+  s_Data.globalDescriptorSets =
+      std::vector<VkDescriptorSet>(MAX_FRAMES_IN_FLIGHT);
+  for (int i = 0; i < s_Data.globalDescriptorSets.size(); i++) {
+    auto bufferInfo = s_Data.uniformBufferManager[i].getBufferInfo();
+    DescriptorWriter(*s_Data.globalSetLayout, *s_Data.globalPool)
+        .writeBuffer(0, &bufferInfo)
+        .build(s_Data.globalDescriptorSets[i]);
+  }
 
   s_Data.commandManager.allocateFrameCommandBuffers(MAX_FRAMES_IN_FLIGHT);
 
@@ -203,7 +207,7 @@ void Renderer::RecordCommandBuffer(VkCommandBuffer commandBuffer,
   vkCmdBindDescriptorSets(
       commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
       s_Data.pipeline.getPipelineLayout(), 0, 1,
-      &s_Data.descriptorSets[s_Data.syncManager.getFlightFrameIndex()], 0,
+      &s_Data.globalDescriptorSets[s_Data.syncManager.getFlightFrameIndex()], 0,
       nullptr);
 
   // Draw all queued objects

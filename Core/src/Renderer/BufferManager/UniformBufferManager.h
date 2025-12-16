@@ -1,5 +1,6 @@
 #pragma once
 #include "BufferManager/BufferManager.h"
+#include "Common/UniformBufferObject.h"
 #include "Swapchain/Swapchain.h"
 #include <vulkan/vulkan.h>
 
@@ -13,6 +14,10 @@ public:
   void writeData(const void *data);
 
   VkBuffer getBuffer() const { return m_buffer; }
+
+  VkDescriptorBufferInfo getBufferInfo() const {
+    return VkDescriptorBufferInfo{m_buffer, 0, sizeof(UniformBufferObject)};
+  }
 
 private:
   void createBuffer();

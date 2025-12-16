@@ -3,7 +3,7 @@ set(SOURCES
   src/Core/Window.cpp
 
   src/Renderer/Renderer.cpp
-  src/Renderer/DescriptorManager/DescriptorManager.cpp
+  src/Renderer/Descriptors/Descriptors.cpp
   src/Renderer/Common/CommandUtils/CommandUtils.cpp
   src/Renderer/Common/MemoryType/MemoryType.cpp
   src/Renderer/Common/Images/CreateImage.cpp

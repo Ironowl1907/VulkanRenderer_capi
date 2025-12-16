@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Swapchain/Swapchain.h"
 #include <memory>
 class DescriptorSetLayout {

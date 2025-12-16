@@ -45,6 +45,7 @@ void Pipeline::createDescriptorSetLayout() {
 
   std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding,
                                                           samplerLayoutBinding};
+
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
