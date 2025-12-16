@@ -31,8 +31,6 @@ struct RendererData {
   CommandManager commandManager;
   std::vector<UBOManager> uniformBufferManager;
 
-  // DescriptorManager descriptorManager;
-
   std::vector<VkDescriptorSet> globalDescriptorSets;
   std::unique_ptr<DescriptorPool> globalPool;
   std::unique_ptr<DescriptorSetLayout> globalSetLayout;

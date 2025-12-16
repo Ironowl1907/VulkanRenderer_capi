@@ -64,8 +64,26 @@ void Renderer::InitVulkan() {
 
   s_Data.swapchain.createFramebuffers(s_Data.renderPass.getRenderPass());
 
+  s_Data.globalPool =
+      DescriptorPoolBuilder(&s_Data.context)
+          .setMaxSets(MAX_FRAMES_IN_FLIGHT)
+          .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT)
+          .addPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                       MAX_FRAMES_IN_FLIGHT)
+          .setPoolFlags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+          .build();
+
+  s_Data.globalSetLayout =
+      DescriptorSetLayoutBuilder(&s_Data.context)
+          .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                      VK_SHADER_STAGE_VERTEX_BIT)
+          .addBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                      VK_SHADER_STAGE_FRAGMENT_BIT)
+          .build();
+
   s_Data.pipeline.init(&s_Data.context, s_Data.renderPass,
-                       s_Data.vertShaderPath, s_Data.fragShaderPath);
+                       *s_Data.globalSetLayout, s_Data.vertShaderPath,
+                       s_Data.fragShaderPath);
 
   s_Data.commandManager.init(&s_Data.context);
   s_Data.commandManager.createCommandPools();
@@ -83,32 +101,15 @@ void Renderer::InitVulkan() {
         &s_Data.context, &s_Data.bufferManager, sizeof(UniformBufferObject));
   }
 
-  // s_Data.descriptorManager.init(&s_Data.context);
-  // s_Data.descriptorManager.createPool(MAX_FRAMES_IN_FLIGHT);
-  //
-  // std::vector<VkDescriptorSetLayout> layouts(
-  //     MAX_FRAMES_IN_FLIGHT, s_Data.pipeline.getDescriptionSetLayout());
-  // s_Data.descriptorSets = s_Data.descriptorManager.allocateSets(
-  //     layouts, s_Data.uniformBufferManager, s_Data.whiteTexture,
-  //     MAX_FRAMES_IN_FLIGHT);
-
-  s_Data.globalPool =
-      DescriptorPoolBuilder(&s_Data.context)
-          .setMaxSets(MAX_FRAMES_IN_FLIGHT)
-          .addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT)
-          .build();
-
-  s_Data.globalSetLayout = DescriptorSetLayoutBuilder(&s_Data.context)
-                               .addBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                           VK_SHADER_STAGE_VERTEX_BIT)
-                               .build();
-
   s_Data.globalDescriptorSets =
       std::vector<VkDescriptorSet>(MAX_FRAMES_IN_FLIGHT);
   for (int i = 0; i < s_Data.globalDescriptorSets.size(); i++) {
     auto bufferInfo = s_Data.uniformBufferManager[i].getBufferInfo();
+    auto imageInfo = s_Data.whiteTexture.getImageDescriptor();
+
     DescriptorWriter(*s_Data.globalSetLayout, *s_Data.globalPool)
         .writeBuffer(0, &bufferInfo)
+        .writeImage(1, &imageInfo)
         .build(s_Data.globalDescriptorSets[i]);
   }
 
@@ -132,12 +133,10 @@ void Renderer::Cleanup() {
     s_Data.uniformBufferManager[i].shutdown();
   }
 
-  vkDestroyDescriptorSetLayout(s_Data.context.getDevice(),
-                               s_Data.pipeline.getDescriptionSetLayout(),
-                               nullptr);
 
-  // TODO: Fix cleanup
-  // s_Data.descriptorManager.shutdown();
+  s_Data.globalPool->freeDescriptors(s_Data.globalDescriptorSets);
+  s_Data.globalPool->shutdown();
+
 
   s_Data.syncManager.cleanup();
 

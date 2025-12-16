@@ -53,6 +53,7 @@ public:
   void freeDescriptors(std::vector<VkDescriptorSet> &descriptors) const;
 
   void resetPool();
+  void shutdown();
 
 private:
   VulkanContext *mp_context;

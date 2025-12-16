@@ -14,6 +14,11 @@ public:
   VkImageView getImageView() { return m_textureImageView; }
   VkSampler getSampler() { return m_textureSampler; }
 
+  VkDescriptorImageInfo getImageDescriptor() const {
+    return VkDescriptorImageInfo{m_textureSampler, m_textureImageView,
+                                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+  }
+
   void cleanup();
 
 private:

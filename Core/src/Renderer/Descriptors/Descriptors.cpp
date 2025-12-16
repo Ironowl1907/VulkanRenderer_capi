@@ -105,6 +105,10 @@ void DescriptorPool::resetPool() {
   vkResetDescriptorPool(mp_context->getDevice(), descriptorPool, 0);
 }
 
+void DescriptorPool::shutdown() {
+  vkDestroyDescriptorPool(mp_context->getDevice(), descriptorPool, nullptr);
+}
+
 DescriptorPoolBuilder &
 DescriptorPoolBuilder::setPoolFlags(VkDescriptorPoolCreateFlags flags) {
   poolFlags = flags;
