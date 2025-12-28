@@ -27,7 +27,7 @@ DescriptorSetLayout::DescriptorSetLayout(
   }
 }
 
-DescriptorSetLayout::~DescriptorSetLayout() {
+	void DescriptorSetLayout::cleanup(){ 
   vkDestroyDescriptorSetLayout(mp_context->getDevice(), m_descriptorSetLayout,
                                nullptr);
 }
@@ -74,9 +74,6 @@ DescriptorPool::DescriptorPool(
   }
 }
 
-DescriptorPool::~DescriptorPool() {
-  vkDestroyDescriptorPool(mp_context->getDevice(), descriptorPool, nullptr);
-}
 
 bool DescriptorPool::allocateDescriptor(
     const VkDescriptorSetLayout descriptorSetLayout,

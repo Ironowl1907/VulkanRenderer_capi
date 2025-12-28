@@ -133,10 +133,9 @@ void Renderer::Cleanup() {
     s_Data.uniformBufferManager[i].shutdown();
   }
 
-
   s_Data.globalPool->freeDescriptors(s_Data.globalDescriptorSets);
   s_Data.globalPool->shutdown();
-
+	s_Data.globalSetLayout->cleanup();
 
   s_Data.syncManager.cleanup();
 

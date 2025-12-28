@@ -6,13 +6,14 @@ public:
   DescriptorSetLayout(
       VulkanContext *p_context,
       std::unordered_map<uint32_t, VkDescriptorSetLayoutBinding> bindings);
-  ~DescriptorSetLayout();
   DescriptorSetLayout(const DescriptorSetLayout &) = delete;
   DescriptorSetLayout &operator=(const DescriptorSetLayout &) = delete;
 
   VkDescriptorSetLayout getDescriptorSetLayout() const {
     return m_descriptorSetLayout;
   }
+
+  void cleanup();
 
 private:
   VulkanContext *mp_context;
@@ -43,7 +44,6 @@ public:
   DescriptorPool(VulkanContext *p_context, uint32_t maxSets,
                  VkDescriptorPoolCreateFlags poolFlags,
                  const std::vector<VkDescriptorPoolSize> &poolSizes);
-  ~DescriptorPool();
   DescriptorPool(const DescriptorPool &) = delete;
   DescriptorPool &operator=(const DescriptorPool &) = delete;
 
