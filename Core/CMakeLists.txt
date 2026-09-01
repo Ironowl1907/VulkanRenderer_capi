@@ -24,7 +24,7 @@ set(SOURCES
   src/Renderer/RenderObjects/ObjectManager.cpp
 )
 
-set(VULKAN_SDK_PATH "/home/ironowl/vulkan_sdk/1.4.328.1/x86_64/" CACHE PATH "Path to Vulkan SDK")
+set(VULKAN_SDK_PATH "/home/ironowl/vulkan_sdk/1.4.357.1/x86_64/" CACHE PATH "Path to Vulkan SDK")
 
 set(VULKAN_INCLUDE_DIR "${VULKAN_SDK_PATH}/include")
 set(VULKAN_LIBRARY_DIR "${VULKAN_SDK_PATH}/lib")
