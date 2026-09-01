@@ -24,11 +24,7 @@ set(SOURCES
   src/Renderer/RenderObjects/ObjectManager.cpp
 )
 
-set(VULKAN_SDK_PATH "/home/ironowl/vulkan_sdk/1.4.357.1/x86_64/" CACHE PATH "Path to Vulkan SDK")
-
-set(VULKAN_INCLUDE_DIR "${VULKAN_SDK_PATH}/include")
-set(VULKAN_LIBRARY_DIR "${VULKAN_SDK_PATH}/lib")
-set(VULKAN_LIBRARY "${VULKAN_SDK_PATH}/lib/libvulkan.so") 
+find_package(Vulkan REQUIRED)
 
 add_library(Core STATIC)
 
@@ -41,18 +37,10 @@ add_compile_definitions(
     GLFW_INCLUDE_NONE
 )
 
-# target_link_libraries(Core glfw)
-# target_link_libraries(Core glad)
-# target_link_libraries(Core glm)
-
+# Link against the imported target Vulkan::Vulkan instead of the raw .so file
 target_link_libraries(Core PRIVATE
-    ${VULKAN_LIBRARY}
+    Vulkan::Vulkan
     glfw
-)
-
-
-target_include_directories(Core PUBLIC
-    ${VULKAN_INCLUDE_DIR}
 )
 
 target_include_directories(Core PUBLIC "src" "vendor" "src/Renderer")
