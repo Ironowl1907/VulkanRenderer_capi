@@ -10,7 +10,7 @@
 #include "Descriptors/Descriptors.h"
 #include "RenderObjects/Mesh/Mesh.h"
 #include "Scene/Camera/Camera.h"
-#include "vulkan/vulkan_core.h"
+#include "volk/volk.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

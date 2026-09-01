@@ -1,13 +1,14 @@
 #include "VulkanContext.h"
 #include "Common/SwapchainSupportDetails.h"
 #include "Core/Application.h"
-#include "vulkan/vulkan_core.h"
+#include "volk/volk.h"
 #include <GLFW/glfw3.h>
 #include <cstring>
 #include <iostream>
 #include <set>
 #include <stdexcept>
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -37,7 +38,7 @@ VulkanContext::getRequiredExtensions(bool validationLayers) {
 
 bool VulkanContext::checkValidationLayerSupport(
     std::vector<const char *> validationLayers) {
-  uint32_t layerCount;
+  uint32_t layerCount = 0;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
   std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -120,6 +121,11 @@ void VulkanContext::destroyDebugUtilsMessengerEXT(
 void VulkanContext::initVulkan(bool validationLayersEnabled,
                                std::vector<const char *> validationLayers) {
   m_validationLayersEnabled = validationLayersEnabled;
+
+  if (volkInitialize() != VK_SUCCESS) {
+    throw std::runtime_error("Failded to initialize volk");
+  }
+
   if (validationLayersEnabled &&
       !checkValidationLayerSupport(validationLayers)) {
     throw std::runtime_error("validation layers requested, but not available!");
@@ -158,6 +164,7 @@ void VulkanContext::initVulkan(bool validationLayersEnabled,
   if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS) {
     throw std::runtime_error("failed to create instance!");
   }
+  volkLoadInstance(m_instance);
   setupDebugMessenger(validationLayersEnabled);
 
   if (glfwCreateWindowSurface(getInstance(),

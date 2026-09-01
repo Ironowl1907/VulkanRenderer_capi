@@ -24,7 +24,7 @@ set(SOURCES
   src/Renderer/RenderObjects/ObjectManager.cpp
 )
 
-find_package(Vulkan REQUIRED)
+find_package(Vulkan REQUIRED COMPONENTS volk)
 
 add_library(Core STATIC)
 
@@ -38,8 +38,8 @@ add_compile_definitions(
 )
 
 # Link against the imported target Vulkan::Vulkan instead of the raw .so file
-target_link_libraries(Core PRIVATE
-    Vulkan::Vulkan
+target_link_libraries(Core PUBLIC
+    Vulkan::volk
     glfw
 )
 

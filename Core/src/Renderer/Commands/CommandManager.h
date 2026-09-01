@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Swapchain/Swapchain.h"
-#include "vulkan/vulkan_core.h"
+#include "volk/volk.h"
 #include <vector>
-#include <vulkan/vulkan.h>
 
 class CommandManager {
 public:

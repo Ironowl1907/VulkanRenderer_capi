@@ -1,6 +1,6 @@
 #include "Descriptors.h"
 
-#include "vulkan/vulkan_core.h"
+#include "volk/volk.h"
 #include <cstdint>
 #include <memory>
 
@@ -27,7 +27,7 @@ DescriptorSetLayout::DescriptorSetLayout(
   }
 }
 
-	void DescriptorSetLayout::cleanup(){ 
+void DescriptorSetLayout::cleanup() {
   vkDestroyDescriptorSetLayout(mp_context->getDevice(), m_descriptorSetLayout,
                                nullptr);
 }
@@ -73,7 +73,6 @@ DescriptorPool::DescriptorPool(
     throw std::runtime_error("failed to create descriptor pool!");
   }
 }
-
 
 bool DescriptorPool::allocateDescriptor(
     const VkDescriptorSetLayout descriptorSetLayout,
